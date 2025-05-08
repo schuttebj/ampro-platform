@@ -2,14 +2,9 @@
   "name": "ampro-platform-root",
   "version": "1.0.0",
   "private": true,
-  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "debug": "node server.js",
-    "build": "echo 'Building debug server'"
-  },
-  "dependencies": {
-    "http": "^0.0.1-security",
-    "fs": "^0.0.1-security"
+    "install": "cd ampro-frontend && npm install",
+    "build": "cd ampro-frontend && npm run build",
+    "start": "cd ampro-frontend && npm start"
   }
 } 

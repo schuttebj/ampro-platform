@@ -1,9 +1,9 @@
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://ampro-licence.onrender.com';
 
 // Create axios instance
-const api: AxiosInstance & { setAuthToken?: (token: string | null) => void } = axios.create({
+const api = axios.create({
   baseURL: `${API_URL}/api/v1`,
   headers: {
     'Content-Type': 'application/json',
@@ -11,13 +11,16 @@ const api: AxiosInstance & { setAuthToken?: (token: string | null) => void } = a
 });
 
 // Add auth token to requests
-api.setAuthToken = (token: string | null) => {
+const setAuthToken = (token: string | null) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
     delete api.defaults.headers.common['Authorization'];
   }
 };
+
+// Add the function to the api object
+(api as any).setAuthToken = setAuthToken;
 
 // Add interceptor for token expiration
 api.interceptors.response.use(
@@ -45,7 +48,7 @@ api.interceptors.response.use(
         const { access_token } = response.data;
         
         // Update access token in API service
-        api.setAuthToken(access_token);
+        setAuthToken(access_token);
         
         // Retry the original request
         return api(originalRequest);

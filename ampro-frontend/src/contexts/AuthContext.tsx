@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { access_token, refresh_token, user } = response.data;
       
       // Store tokens
-      api.setAuthToken?.(access_token);
+      api.setAuthToken(access_token);
       localStorage.setItem('refreshToken', refresh_token);
       
       // Update state
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = () => {
     // Clear tokens
-    api.setAuthToken?.(null);
+    api.setAuthToken(null);
     localStorage.removeItem('refreshToken');
     
     // Update state
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { access_token } = response.data;
       
       // Update access token
-      api.setAuthToken?.(access_token);
+      api.setAuthToken(access_token);
       
       // Get user data
       const userResponse = await api.get('/auth/me');
