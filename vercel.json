@@ -1,11 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "cd ampro-frontend && npm install && npm run build",
-  "outputDirectory": "ampro-frontend/build",
-  "routes": [
+  "builds": [
     {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "src": "package.json",
+      "use": "@vercel/node"
     }
   ]
 } 
