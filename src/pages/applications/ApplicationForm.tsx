@@ -30,7 +30,7 @@ interface ApplicationFormData {
   license_class?: string;
   application_date: string;
   notes?: string;
-  application_fee?: number;
+  application_fee?: number | null;
   payment_status?: string;
 }
 
