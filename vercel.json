@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "cd ampro-frontend && npm install && npm run build",
-  "outputDirectory": "ampro-frontend/build",
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "build",
   "routes": [
     { 
       "src": "/(.*)", 
