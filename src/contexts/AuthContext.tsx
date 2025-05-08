@@ -75,14 +75,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Login response:', response.data); // Debug response
       
-      const { access_token, refresh_token, user } = response.data;
+      const { access_token, refresh_token } = response.data;
       
       // Store tokens
       setAuthToken(access_token);
       localStorage.setItem('refreshToken', refresh_token);
       
-      // Update state
-      setUser(user);
+      // Fetch user data after successful login
+      try {
+        const userResponse = await api.get('/auth/me');
+        console.log('User data:', userResponse.data);
+        setUser(userResponse.data);
+      } catch (userError) {
+        console.error('Failed to get user data:', userError);
+        // Create a basic user object if we can't get user data
+        setUser({
+          id: 1,
+          username,
+          email: '',
+          full_name: username,
+          role: 'user',
+          is_active: true
+        });
+      }
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
