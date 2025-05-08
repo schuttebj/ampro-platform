@@ -1,5 +1,5 @@
 # dependencies
-/ampro-frontend/node_modules
+ampro-frontend/node_modules
 /.pnp
 .pnp.js
 
@@ -7,10 +7,11 @@
 /coverage
 
 # production
-/ampro-frontend/build
+ampro-frontend/build
 
 # misc
 .DS_Store
+.env
 .env.local
 .env.development.local
 .env.test.local
