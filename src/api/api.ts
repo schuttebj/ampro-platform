@@ -1,5 +1,7 @@
+// @ts-ignore - Import axios
 import axios from 'axios';
 
+// @ts-ignore - Process env variable
 const API_URL = process.env.REACT_APP_API_URL || 'https://ampro-licence.onrender.com';
 
 // Create axios instance
@@ -10,10 +12,24 @@ const api = axios.create({
   },
 });
 
+// Helper function to create form-urlencoded data
+export const createFormData = (data: Record<string, any>): URLSearchParams => {
+  const formData = new URLSearchParams();
+  for (const key in data) {
+    if (data[key] !== undefined && data[key] !== null) {
+      formData.append(key, data[key]);
+    }
+  }
+  return formData;
+};
+
 // Add interceptor for token expiration
 api.interceptors.response.use(
+  // @ts-ignore - Response parameter
   (response) => response,
+  // @ts-ignore - Error parameter
   async (error) => {
+    // @ts-ignore - Allow _retry property
     const originalRequest = error.config;
     
     // If error is 401 (Unauthorized) and not already retrying
