@@ -183,21 +183,36 @@ const ApplicationForm: React.FC = () => {
       setLoading(true);
       setError('');
       
+      console.log('Submitting application with data:', data);
+      
       // Only include license_class if license_type is 'Driver'
       const submissionData = {
         ...data,
         license_class: data.license_type === 'Driver' ? data.license_class : undefined
       };
       
+      console.log('Processed submission data:', submissionData);
+      
       if (isEditMode) {
-        await api.put(`/applications/${id}`, submissionData);
+        console.log(`Updating application with ID: ${id}`);
+        const response = await api.put(`/applications/${id}`, submissionData);
+        console.log('Update response:', response.data);
       } else {
-        await api.post('/applications', submissionData);
+        console.log('Creating new application');
+        const response = await api.post('/applications', submissionData);
+        console.log('Create response:', response.data);
       }
       
+      setLoading(false);
+      console.log('API call successful, navigating to /applications');
       navigate('/applications');
     } catch (error: any) {
       console.error('Error saving application:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
       setError(error.response?.data?.detail || 'Failed to save application.');
       setLoading(false);
     }
