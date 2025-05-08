@@ -18,6 +18,8 @@ import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CitizenSearch from './pages/citizens/CitizenSearch';
+import CitizenDetails from './pages/citizens/CitizenDetails';
+import CitizenForm from './pages/citizens/CitizenForm';
 
 // Create the query client
 const queryClient = new QueryClient();
@@ -72,6 +74,9 @@ const App: React.FC = () => {
                 <Route element={<MainLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/citizens" element={<CitizenSearch />} />
+                  <Route path="/citizens/:id" element={<CitizenDetails />} />
+                  <Route path="/citizens/:id/edit" element={<CitizenForm />} />
+                  <Route path="/citizens/new" element={<CitizenForm />} />
                   <Route path="/licenses" element={<div>Licenses Page</div>} />
                   <Route path="/applications" element={<div>Applications Page</div>} />
                   <Route path="/transactions" element={<div>Transactions Page</div>} />
