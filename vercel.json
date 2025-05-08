@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "ampro-frontend",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build",
+        "buildCommand": "npm run build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/ampro-frontend/$1"
+    }
+  ]
+} 
