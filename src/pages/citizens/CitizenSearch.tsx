@@ -188,10 +188,20 @@ const CitizenSearch: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this citizen?')) return;
 
     try {
-      await api.delete(`/citizens/${id}`);
-      setCitizens(citizens.filter(citizen => citizen.id !== id));
+      setLoading(true);
+      const response = await api.delete(`/citizens/${id}`);
+      
+      if (response.status === 204 || response.status === 200) {
+        // Successfully deleted - remove from the local state
+        setCitizens(citizens.filter(citizen => citizen.id !== id));
+      } else {
+        throw new Error('Failed to delete citizen');
+      }
     } catch (error: any) {
+      console.error('Error deleting citizen:', error);
       setError(error.response?.data?.detail || 'Failed to delete citizen.');
+    } finally {
+      setLoading(false);
     }
   };
 

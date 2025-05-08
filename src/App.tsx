@@ -20,6 +20,12 @@ import Dashboard from './pages/Dashboard';
 import CitizenSearch from './pages/citizens/CitizenSearch';
 import CitizenDetails from './pages/citizens/CitizenDetails';
 import CitizenForm from './pages/citizens/CitizenForm';
+import ApplicationList from './pages/applications/ApplicationList';
+import ApplicationDetails from './pages/applications/ApplicationDetails';
+import ApplicationForm from './pages/applications/ApplicationForm';
+import LicenseList from './pages/licenses/LicenseList';
+import LicenseDetails from './pages/licenses/LicenseDetails';
+import LicenseForm from './pages/licenses/LicenseForm';
 
 // Create the query client
 const queryClient = new QueryClient();
@@ -73,12 +79,25 @@ const App: React.FC = () => {
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
+                  
+                  {/* Citizen routes */}
                   <Route path="/citizens" element={<CitizenSearch />} />
                   <Route path="/citizens/:id" element={<CitizenDetails />} />
                   <Route path="/citizens/:id/edit" element={<CitizenForm />} />
                   <Route path="/citizens/new" element={<CitizenForm />} />
-                  <Route path="/licenses" element={<div>Licenses Page</div>} />
-                  <Route path="/applications" element={<div>Applications Page</div>} />
+                  
+                  {/* Application routes */}
+                  <Route path="/applications" element={<ApplicationList />} />
+                  <Route path="/applications/:id" element={<ApplicationDetails />} />
+                  <Route path="/applications/:id/edit" element={<ApplicationForm />} />
+                  <Route path="/applications/new" element={<ApplicationForm />} />
+                  
+                  {/* License routes */}
+                  <Route path="/licenses" element={<LicenseList />} />
+                  <Route path="/licenses/:id" element={<LicenseDetails />} />
+                  <Route path="/licenses/:id/edit" element={<LicenseForm />} />
+                  <Route path="/licenses/new" element={<LicenseForm />} />
+                  
                   <Route path="/transactions" element={<div>Transactions Page</div>} />
                   <Route path="/reports" element={<div>Reports Page</div>} />
                   <Route path="/settings" element={<div>Settings Page</div>} />
