@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -13,7 +13,6 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  Chip,
   InputAdornment,
   Alert,
   CircularProgress
@@ -47,28 +46,52 @@ const CitizenSearch: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Handle search form submission
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) return;
+  // Load all citizens on initial load
+  useEffect(() => {
+    fetchCitizens();
+  }, []);
 
+  // Fetch all citizens or search results
+  const fetchCitizens = async (query?: string) => {
     setLoading(true);
     setError('');
 
     try {
-      const response = await api.get('/citizens/search', {
-        params: { query: searchTerm }
-      });
+      let response;
+      if (query) {
+        response = await api.get('/citizens/search', {
+          params: { query }
+        });
+      } else {
+        // Fetch all citizens if no query is provided
+        response = await api.get('/citizens');
+      }
+
+      console.log('API Response:', response.data);
+      
       setCitizens(response.data);
       if (response.data.length === 0) {
-        setError('No citizens found with the given search term.');
+        setError(query ? 'No citizens found with the given search term.' : 'No citizens found in the system.');
       }
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Failed to search citizens.');
+      console.error('Search error:', error);
+      setError(error.response?.data?.detail || 'Failed to retrieve citizen data.');
       setCitizens([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle search form submission
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) {
+      // If search is empty, fetch all citizens
+      fetchCitizens();
+      return;
+    }
+
+    fetchCitizens(searchTerm);
   };
 
   // Navigate to citizen details
@@ -91,54 +114,6 @@ const CitizenSearch: React.FC = () => {
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Failed to delete citizen.');
     }
-  };
-
-  // Mock data for demo purposes
-  const mockSearch = () => {
-    setLoading(true);
-    setError('');
-    
-    // Simulate API delay
-    setTimeout(() => {
-      const mockData: Citizen[] = [
-        {
-          id: 1,
-          id_number: '9001011234567',
-          first_name: 'John',
-          last_name: 'Doe',
-          date_of_birth: '1990-01-01',
-          gender: 'Male',
-          contact_number: '0721234567',
-          email: 'john.doe@example.com',
-          address: '123 Main St, City'
-        },
-        {
-          id: 2,
-          id_number: '8502025678901',
-          first_name: 'Jane',
-          last_name: 'Smith',
-          date_of_birth: '1985-02-02',
-          gender: 'Female',
-          contact_number: '0825678901',
-          email: 'jane.smith@example.com',
-          address: '456 Oak Ave, Town'
-        },
-        {
-          id: 3,
-          id_number: '7803036789012',
-          first_name: 'Robert',
-          last_name: 'Johnson',
-          date_of_birth: '1978-03-03',
-          gender: 'Male',
-          contact_number: '0836789012',
-          email: 'robert.j@example.com',
-          address: '789 Pine St, Village'
-        }
-      ];
-      
-      setCitizens(mockData);
-      setLoading(false);
-    }, 1000);
   };
 
   return (
@@ -180,18 +155,23 @@ const CitizenSearch: React.FC = () => {
           <Button 
             type="submit" 
             variant="contained" 
-            disabled={loading || !searchTerm.trim()}
+            disabled={loading}
             sx={{ minWidth: '120px' }}
           >
             {loading ? <CircularProgress size={24} /> : 'Search'}
           </Button>
-          <Button 
-            variant="outlined" 
-            sx={{ ml: 2 }}
-            onClick={mockSearch}
-          >
-            Demo Search
-          </Button>
+          {searchTerm && (
+            <Button 
+              variant="outlined" 
+              sx={{ ml: 2 }}
+              onClick={() => {
+                setSearchTerm('');
+                fetchCitizens();
+              }}
+            >
+              Clear
+            </Button>
+          )}
         </Box>
       </Paper>
 
@@ -200,6 +180,13 @@ const CitizenSearch: React.FC = () => {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
+      )}
+
+      {/* Loading Indicator when no results yet */}
+      {loading && citizens.length === 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
       )}
 
       {/* Results Table */}
