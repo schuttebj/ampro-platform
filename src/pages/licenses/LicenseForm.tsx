@@ -50,9 +50,13 @@ interface License {
 // Form validation schema
 const schema = yup.object({
   license_class: yup.string().required('License class is required'),
-  issue_date: yup.date().required('Issue date is required'),
-  expiry_date: yup.date().required('Expiry date is required')
-    .min(yup.ref('issue_date'), 'Expiry date must be after issue date'),
+  issue_date: yup.string().required('Issue date is required'),
+  expiry_date: yup.string().required('Expiry date is required')
+    .test('is-after-issue-date', 'Expiry date must be after issue date', 
+      function(value) {
+        const { issue_date } = this.parent;
+        return !issue_date || !value || new Date(value) > new Date(issue_date);
+      }),
   status: yup.string().required('Status is required'),
   citizen_id: yup.number().required('Citizen is required'),
   restrictions: yup.string(),
