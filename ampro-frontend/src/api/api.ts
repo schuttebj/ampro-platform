@@ -10,18 +10,6 @@ const api = axios.create({
   },
 });
 
-// Add auth token to requests
-const setAuthToken = (token: string | null) => {
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common['Authorization'];
-  }
-};
-
-// Add the function to the api object
-(api as any).setAuthToken = setAuthToken;
-
 // Add interceptor for token expiration
 api.interceptors.response.use(
   (response) => response,
@@ -48,7 +36,9 @@ api.interceptors.response.use(
         const { access_token } = response.data;
         
         // Update access token in API service
-        setAuthToken(access_token);
+        if (access_token) {
+          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+        }
         
         // Retry the original request
         return api(originalRequest);

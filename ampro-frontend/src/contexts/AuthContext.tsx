@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 import api from '../api/api';
 
 // Define User interface
@@ -20,6 +21,17 @@ interface AuthContextType {
   logout: () => void;
   refreshToken: () => Promise<void>;
 }
+
+// Helper function to set the auth token in the API
+const setAuthToken = (token: string | null) => {
+  if (!api.defaults) return;
+  
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
 
 // Create the context with undefined as default
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { access_token, refresh_token, user } = response.data;
       
       // Store tokens
-      api.setAuthToken(access_token);
+      setAuthToken(access_token);
       localStorage.setItem('refreshToken', refresh_token);
       
       // Update state
@@ -71,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = () => {
     // Clear tokens
-    api.setAuthToken(null);
+    setAuthToken(null);
     localStorage.removeItem('refreshToken');
     
     // Update state
@@ -89,8 +101,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const { access_token } = response.data;
       
-      // Update access token
-      api.setAuthToken(access_token);
+      // Update access token in API service
+      setAuthToken(access_token);
       
       // Get user data
       const userResponse = await api.get('/auth/me');
