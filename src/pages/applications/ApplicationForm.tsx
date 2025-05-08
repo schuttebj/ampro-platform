@@ -72,9 +72,10 @@ const paymentStatuses = [
 const schema = yup.object({
   citizen_id: yup.number().required('Citizen is required'),
   license_type: yup.string().required('License type is required'),
-  license_class: yup.string().when('license_type', {
-    is: 'Driver',
-    then: yup.string().required('License class is required for driver licenses'),
+  license_class: yup.string().when('license_type', (license_type, schema) => {
+    return license_type === 'Driver' 
+      ? schema.required('License class is required for driver licenses')
+      : schema;
   }),
   application_date: yup.string().required('Application date is required'),
   notes: yup.string(),
