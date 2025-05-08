@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import api from '../api/api';
+import api, { createFormData } from '../api/api';
 
 // Define User interface
 export interface User {
@@ -63,7 +63,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await api.post('/auth/login', { username, password });
+      // Create form-urlencoded data for login
+      const formData = createFormData({ username, password });
+      
+      // Set the correct content type for this request
+      const response = await axios.post(`${api.defaults.baseURL}/auth/login`, formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      
+      console.log('Login response:', response.data); // Debug response
+      
       const { access_token, refresh_token, user } = response.data;
       
       // Store tokens
@@ -96,9 +107,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!storedRefreshToken) return;
     
     try {
-      const response = await api.post('/auth/token', { 
-        refresh_token: storedRefreshToken 
+      const formData = createFormData({ refresh_token: storedRefreshToken });
+      
+      const response = await axios.post(`${api.defaults.baseURL}/auth/token`, formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
       });
+      
       const { access_token } = response.data;
       
       // Update access token in API service
