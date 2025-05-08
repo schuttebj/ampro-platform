@@ -59,9 +59,33 @@ const CitizenSearch: React.FC = () => {
     try {
       let response;
       if (query) {
-        response = await api.get('/citizens/search', {
-          params: { query }
-        });
+        // Determine if the query is a name or ID number
+        const isNumeric = /^\d+$/.test(query);
+        
+        // Set parameters based on what the API expects
+        const params: Record<string, any> = {};
+        
+        if (isNumeric) {
+          // If query is numeric, search by ID number
+          params.id_number = query;
+        } else {
+          // If query is text, search by name (try both first and last name)
+          // Split the query in case it's a full name
+          const nameParts = query.trim().split(/\s+/);
+          
+          if (nameParts.length > 1) {
+            // If there are multiple parts, assume first_name and last_name
+            params.first_name = nameParts[0];
+            params.last_name = nameParts[nameParts.length - 1];
+          } else {
+            // Otherwise search in both fields
+            params.first_name = query;
+            params.last_name = query;
+          }
+        }
+        
+        console.log('Search params:', params);
+        response = await api.get('/citizens/search', { params });
       } else {
         // Fetch all citizens if no query is provided
         response = await api.get('/citizens');
