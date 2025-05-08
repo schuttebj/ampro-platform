@@ -59,39 +59,94 @@ const CitizenSearch: React.FC = () => {
     try {
       let response;
       if (query) {
-        // Determine if the query is a name or ID number
-        const isNumeric = /^\d+$/.test(query);
+        // Clean the query string
+        const cleanQuery = query.trim();
+        
+        // Determine if the query contains only digits
+        const isNumeric = /^\d+$/.test(cleanQuery);
         
         // Set parameters based on what the API expects
+        // We'll send the same search term to multiple fields to allow for partial matches
         const params: Record<string, any> = {};
         
+        // If query has digits, include ID number search
         if (isNumeric) {
-          // If query is numeric, search by ID number
-          params.id_number = query;
+          params.id_number = cleanQuery;
         } else {
-          // If query is text, search by name (try both first and last name)
-          // Split the query in case it's a full name
-          const nameParts = query.trim().split(/\s+/);
+          // For text searches, check first/last name
+          const nameParts = cleanQuery.split(/\s+/);
           
           if (nameParts.length > 1) {
-            // If there are multiple parts, assume first_name and last_name
+            // If there are multiple parts, try different combinations
             params.first_name = nameParts[0];
             params.last_name = nameParts[nameParts.length - 1];
           } else {
-            // Otherwise search in both fields
-            params.first_name = query;
-            params.last_name = query;
+            // For single word, search in both fields
+            params.first_name = cleanQuery;
+            params.last_name = cleanQuery;
           }
         }
         
         console.log('Search params:', params);
-        response = await api.get('/citizens/search', { params });
+        
+        // First try the main search endpoint
+        try {
+          response = await api.get('/citizens/search', { params });
+          console.log('Search response:', response.data);
+          
+          // If we get no results and it's not numeric, try a more general search
+          if (response.data.length === 0 && !isNumeric) {
+            console.log('No results with specific search, trying general search...');
+            
+            // Try to get all citizens and filter client-side
+            const allResponse = await api.get('/citizens');
+            const allCitizens = allResponse.data;
+            
+            // Filter citizens that match the search term in any relevant field
+            const filteredCitizens = allCitizens.filter((citizen: any) => {
+              const fullName = `${citizen.first_name} ${citizen.last_name}`.toLowerCase();
+              const searchTerm = cleanQuery.toLowerCase();
+              
+              return (
+                citizen.id_number?.includes(searchTerm) ||
+                citizen.first_name?.toLowerCase().includes(searchTerm) ||
+                citizen.last_name?.toLowerCase().includes(searchTerm) ||
+                fullName.includes(searchTerm)
+              );
+            });
+            
+            console.log('Client-side filtered results:', filteredCitizens);
+            response = { data: filteredCitizens };
+          }
+        } catch (searchError) {
+          console.error('Search endpoint error, falling back to general endpoint:', searchError);
+          
+          // If search endpoint fails, fall back to getting all citizens
+          const allResponse = await api.get('/citizens');
+          const allCitizens = allResponse.data;
+          
+          // Filter citizens that match the search term
+          const filteredCitizens = allCitizens.filter((citizen: any) => {
+            const fullName = `${citizen.first_name} ${citizen.last_name}`.toLowerCase();
+            const searchTerm = cleanQuery.toLowerCase();
+            
+            return (
+              citizen.id_number?.includes(searchTerm) ||
+              citizen.first_name?.toLowerCase().includes(searchTerm) ||
+              citizen.last_name?.toLowerCase().includes(searchTerm) ||
+              fullName.includes(searchTerm)
+            );
+          });
+          
+          console.log('Fallback filtered results:', filteredCitizens);
+          response = { data: filteredCitizens };
+        }
       } else {
         // Fetch all citizens if no query is provided
         response = await api.get('/citizens');
       }
 
-      console.log('API Response:', response.data);
+      console.log('Final API response:', response.data);
       
       setCitizens(response.data);
       if (response.data.length === 0) {
