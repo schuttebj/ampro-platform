@@ -13,12 +13,19 @@ import {
   CardContent,
   CardHeader,
   Chip,
-  IconButton
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 import {
   Edit as EditIcon,
   ArrowBack as ArrowBackIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Visibility as ViewIcon
 } from '@mui/icons-material';
 import api from '../../api/api';
 
@@ -46,12 +53,26 @@ interface Citizen {
   is_active: boolean;
 }
 
+// Define License interface
+interface License {
+  id: number;
+  license_number: string;
+  category: string;
+  issue_date: string;
+  expiry_date: string;
+  status: string;
+  is_active?: boolean;
+}
+
 const CitizenDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [citizen, setCitizen] = useState<Citizen | null>(null);
+  const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
+  const [licensesLoading, setLicensesLoading] = useState(true);
   const [error, setError] = useState('');
+  const [licensesError, setLicensesError] = useState('');
 
   useEffect(() => {
     const fetchCitizen = async () => {
@@ -74,6 +95,35 @@ const CitizenDetails: React.FC = () => {
     }
   }, [id]);
 
+  // Fetch citizen licenses
+  useEffect(() => {
+    const fetchLicenses = async () => {
+      if (!id) return;
+      
+      try {
+        setLicensesLoading(true);
+        setLicensesError('');
+        
+        const response = await api.get(`/citizens/${id}/licenses`);
+        console.log('Citizen licenses response:', response.data);
+        if (response.data.licenses) {
+          setLicenses(response.data.licenses);
+        } else {
+          setLicenses([]);
+        }
+      } catch (error: any) {
+        console.error('Error fetching citizen licenses:', error);
+        setLicensesError(error.response?.data?.detail || 'Failed to load citizen licenses.');
+      } finally {
+        setLicensesLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchLicenses();
+    }
+  }, [id]);
+
   const handleDelete = async () => {
     if (!citizen) return;
     
@@ -88,6 +138,11 @@ const CitizenDetails: React.FC = () => {
         setLoading(false);
       }
     }
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
 
   if (loading) {
@@ -234,6 +289,83 @@ const CitizenDetails: React.FC = () => {
             </Card>
           </Grid>
         </Grid>
+      </Paper>
+
+      {/* Licenses Section */}
+      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" component="h2">
+            Licenses
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={() => navigate(`/licenses/new?citizen=${id}`)}
+          >
+            Add New License
+          </Button>
+        </Box>
+        
+        {licensesLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : licensesError ? (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {licensesError}
+          </Alert>
+        ) : licenses.length === 0 ? (
+          <Alert severity="info">
+            No licenses found for this citizen.
+          </Alert>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>License Number</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Issue Date</TableCell>
+                  <TableCell>Expiry Date</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {licenses.map((license) => (
+                  <TableRow key={license.id}>
+                    <TableCell>{license.license_number}</TableCell>
+                    <TableCell>{license.category}</TableCell>
+                    <TableCell>{formatDate(license.issue_date)}</TableCell>
+                    <TableCell>{formatDate(license.expiry_date)}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={license.status ? license.status.toUpperCase() : 'UNKNOWN'} 
+                        color={
+                          license.status === 'active' ? 'success' : 
+                          license.status === 'expired' ? 'error' : 
+                          license.status === 'suspended' ? 'warning' : 
+                          license.status === 'revoked' ? 'error' : 
+                          'default'
+                        } 
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <IconButton
+                        color="primary"
+                        onClick={() => navigate(`/licenses/${license.id}`)}
+                        size="small"
+                      >
+                        <ViewIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
     </Box>
   );
