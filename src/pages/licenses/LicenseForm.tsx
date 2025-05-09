@@ -53,6 +53,7 @@ interface License {
 
 // Form validation schema
 const schema = yup.object({
+  license_number: yup.string().required('License number is required'),
   license_class: yup.string().required('License class is required'),
   issue_date: yup.string().required('Issue date is required'),
   expiry_date: yup.string().required('Expiry date is required')
@@ -67,6 +68,17 @@ const schema = yup.object({
     .test('is-valid-citizen', 'Please select a valid citizen', value => value > 0),
   restrictions: yup.string(),
 }).required();
+
+// Default values for the form
+const defaultValues: License = {
+  license_class: 'B',
+  issue_date: format(new Date(), 'yyyy-MM-dd'),
+  expiry_date: format(addYears(new Date(), 5), 'yyyy-MM-dd'),
+  status: 'active',
+  citizen_id: 0,
+  restrictions: '',
+  license_number: '' // Empty string by default
+};
 
 const LicenseForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -84,14 +96,7 @@ const LicenseForm: React.FC = () => {
   // Initialize form
   const { control, handleSubmit, reset, formState: { errors }, setValue, watch } = useForm<License>({
     resolver: yupResolver(schema),
-    defaultValues: {
-      license_class: 'B',
-      issue_date: format(new Date(), 'yyyy-MM-dd'),
-      expiry_date: format(addYears(new Date(), 5), 'yyyy-MM-dd'),
-      status: 'active',
-      citizen_id: 0,
-      restrictions: ''
-    }
+    defaultValues: defaultValues
   });
   
   // Watch values for dependencies
@@ -209,9 +214,16 @@ const LicenseForm: React.FC = () => {
     try {
       const response = await api.get('/licenses/generate-number');
       setValue('license_number', response.data.license_number);
+      console.log('License number generated:', response.data.license_number);
     } catch (error: any) {
       console.error('Error generating license number:', error);
       setError(error.response?.data?.detail || 'Failed to generate license number.');
+      
+      // If we can't generate from API, create a simple random number
+      const randomNumber = Math.floor(Math.random() * 10000000).toString();
+      const generatedNumber = `LIC-${randomNumber}`;
+      console.log('Generating fallback license number:', generatedNumber);
+      setValue('license_number', generatedNumber);
     } finally {
       setGeneratingNumber(false);
     }
@@ -238,6 +250,13 @@ const LicenseForm: React.FC = () => {
       return;
     }
     
+    // Ensure license number is provided
+    if (!data.license_number || data.license_number.trim() === '') {
+      setError('License number is required. Please provide a license number or generate one.');
+      setLoading(false);
+      return;
+    }
+    
     // Double check valid citizen
     const validCitizen = citizens.find(c => c.id === data.citizen_id);
     if (!validCitizen && data.citizen_id > 0) {
@@ -249,7 +268,7 @@ const LicenseForm: React.FC = () => {
       
       // Create API-compatible object
       const submissionData = {
-        license_number: data.license_number || undefined,
+        license_number: data.license_number, // Required field - never undefined
         citizen_id: data.citizen_id,
         category: data.license_class, // API expects category instead of license_class
         issue_date: data.issue_date,
@@ -288,7 +307,19 @@ const LicenseForm: React.FC = () => {
       
       // Better error message display from API validation errors
       if (error.response?.data?.detail) {
-        setError(error.response.data.detail);
+        try {
+          // Handle the array of validation errors from Pydantic
+          if (Array.isArray(error.response.data.detail)) {
+            const errorMessages = error.response.data.detail.map((err: any) => {
+              return `${err.loc[err.loc.length - 1]}: ${err.msg}`;
+            });
+            setError(errorMessages.join(', '));
+          } else {
+            setError(error.response.data.detail);
+          }
+        } catch (parseError) {
+          setError(error.response.data.detail);
+        }
       } else if (typeof error.response?.data === 'object') {
         // Format validation errors from the API
         const errorMessages = [];
@@ -357,28 +388,33 @@ const LicenseForm: React.FC = () => {
                     render={({ field }) => (
                       <TextField
                         {...field}
-                        label="License Number"
+                        label="License Number *"
                         variant="outlined"
                         fullWidth
                         disabled={isEditMode}
+                        error={!!errors.license_number}
+                        helperText={errors.license_number?.message || (isEditMode ? "License number can't be changed" : "Required field")}
                         InputProps={{
                           endAdornment: !isEditMode && (
                             <Button 
                               onClick={generateLicenseNumber}
                               disabled={generatingNumber}
+                              variant="contained"
+                              color="primary"
                               sx={{ ml: 1 }}
                             >
-                              {generatingNumber ? <CircularProgress size={24} /> : 'Generate'}
+                              {generatingNumber ? <CircularProgress size={24} /> : 'Generate Number'}
                             </Button>
                           )
                         }}
-                        helperText={isEditMode ? 
-                          "License number can't be changed" : 
-                          "Leave blank to generate automatically, or click Generate"
-                        }
                       />
                     )}
                   />
+                  {!isEditMode && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      License number is required. You can enter one manually or click "Generate Number".
+                    </Typography>
+                  )}
                 </Box>
                 
                 {/* License Class */}
