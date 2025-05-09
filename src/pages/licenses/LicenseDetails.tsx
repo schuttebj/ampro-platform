@@ -95,40 +95,48 @@ const LicenseDetails: React.FC = () => {
       const licenseData = licenseResponse.data;
       console.log('License data received:', licenseData);
       
-      // Check if license data is empty or incomplete
-      if (!licenseData || Object.keys(licenseData).length === 0) {
-        console.error('Received empty license data');
-        setError('License data is incomplete or not available');
+      // Only show error if we got no data at all
+      if (!licenseData) {
+        console.error('Received null license data');
+        setError('License data not available');
         setLoading(false);
         return;
       }
       
-      // Set default values for missing fields
-      const processedData = {
-        id: parseInt(id),
-        license_number: licenseData.license_number || 'N/A',
-        category: licenseData.category || 'N/A',
-        issue_date: licenseData.issue_date || new Date().toISOString().split('T')[0],
-        expiry_date: licenseData.expiry_date || new Date().toISOString().split('T')[0],
-        status: licenseData.status || 'pending',
-        citizen_id: licenseData.citizen_id || 0,
-        restrictions: licenseData.restrictions || '',
-        medical_conditions: licenseData.medical_conditions || '',
-        ...licenseData
-      };
-      
-      console.log('Processed license data:', processedData);
-      setLicense(processedData);
-      
-      // Get citizen details
-      if (processedData.citizen_id) {
-        try {
-          const citizenResponse = await api.get(`/citizens/${processedData.citizen_id}`);
-          setCitizen(citizenResponse.data);
-        } catch (citizenError) {
-          console.error('Error fetching citizen details:', citizenError);
-          // Don't set main error, just log it
+      // The license data might be empty object with just status, or it might have status as a property
+      // Handle both cases
+      if (typeof licenseData === 'object') {
+        // Create a processed version with fallbacks for missing fields
+        const processedData = {
+          id: parseInt(id),
+          license_number: licenseData.license_number || 'N/A',
+          category: licenseData.category || 'N/A',
+          issue_date: licenseData.issue_date || new Date().toISOString().split('T')[0],
+          expiry_date: licenseData.expiry_date || new Date().toISOString().split('T')[0],
+          status: licenseData.status || 'pending',
+          citizen_id: licenseData.citizen_id || 0,
+          restrictions: licenseData.restrictions || '',
+          medical_conditions: licenseData.medical_conditions || '',
+          ...licenseData
+        };
+        
+        console.log('Processed license data:', processedData);
+        setLicense(processedData);
+        
+        // Get citizen details if we have a citizen_id
+        if (processedData.citizen_id) {
+          try {
+            const citizenResponse = await api.get(`/citizens/${processedData.citizen_id}`);
+            setCitizen(citizenResponse.data);
+          } catch (citizenError) {
+            console.error('Error fetching citizen details:', citizenError);
+            // Don't set main error, just log it
+          }
         }
+      } else {
+        console.error('Received invalid license data format:', licenseData);
+        setError('Invalid license data format');
+        setLoading(false);
       }
     } catch (error: any) {
       console.error('Error fetching license details:', error);

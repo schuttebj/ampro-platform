@@ -295,8 +295,12 @@ const LicenseForm: React.FC = () => {
         const response = await api.put(`/licenses/${id}`, submissionData);
         console.log('Update response:', response.data);
         responseData = response.data;
-        setLoading(false);
+        
+        // Show success message
+        alert('License updated successfully!');
+        
         // Navigate to license details page
+        setLoading(false);
         navigate(`/licenses/${id}`);
       } else {
         // Create new license
@@ -304,10 +308,26 @@ const LicenseForm: React.FC = () => {
         const response = await api.post('/licenses', submissionData);
         console.log('Create response:', response.data);
         responseData = response.data;
-        setLoading(false);
-        // Navigate to the new license details page
-        const newLicenseId = response.data.id;
-        navigate(`/licenses/${newLicenseId}`);
+        
+        // Check if we have a valid response with an ID
+        if (response.data && response.data.id) {
+          const newLicenseId = response.data.id;
+          console.log(`License created with ID: ${newLicenseId}`);
+          
+          // Show success message
+          alert('License created successfully!');
+          
+          // Navigate to the new license details page
+          setLoading(false);
+          navigate(`/licenses/${newLicenseId}`);
+        } else {
+          console.error('License created but no ID returned:', response.data);
+          
+          // Show success but inform user we can't navigate to details
+          alert('License created successfully, but unable to view details. Returning to license list.');
+          setLoading(false);
+          navigate('/licenses');
+        }
       }
       
       // Add success notification
