@@ -92,12 +92,32 @@ const LicenseDetails: React.FC = () => {
     try {
       // Get license details
       const licenseResponse = await api.get(`/licenses/${id}`);
-      const licenseData = licenseResponse.data;
-      console.log('License data received:', licenseData);
+      const responseData = licenseResponse.data;
+      console.log('License API response:', responseData);
       
-      // Only show error if we got no data at all
+      // Handle the new API response format where license details are nested in a 'license' property
+      // and citizen data is directly included
+      let licenseData = responseData;
+      let citizenData = null;
+      
+      // Check if we have the new response format with nested license and citizen
+      if (responseData && typeof responseData === 'object') {
+        if (responseData.license) {
+          licenseData = responseData.license;
+          console.log('Found license data in nested format:', licenseData);
+        }
+        
+        if (responseData.citizen) {
+          citizenData = responseData.citizen;
+          console.log('Found citizen data in response:', citizenData);
+          // Set citizen directly from response - no need for another API call
+          setCitizen(citizenData);
+        }
+      }
+      
+      // Only show error if we got no license data at all
       if (!licenseData) {
-        console.error('Received null license data');
+        console.error('No license data found in the response');
         setError('License data not available');
         setLoading(false);
         return;
@@ -123,8 +143,8 @@ const LicenseDetails: React.FC = () => {
         console.log('Processed license data:', processedData);
         setLicense(processedData);
         
-        // Get citizen details if we have a citizen_id
-        if (processedData.citizen_id) {
+        // Only fetch citizen details if not already provided in the response
+        if (!citizenData && processedData.citizen_id) {
           try {
             const citizenResponse = await api.get(`/citizens/${processedData.citizen_id}`);
             setCitizen(citizenResponse.data);
