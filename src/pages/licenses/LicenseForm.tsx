@@ -39,8 +39,7 @@ interface Citizen {
 interface License {
   id?: number;
   license_number: string;
-  license_class: string;
-  category?: string;
+  category: string;
   issue_date: string;
   expiry_date: string;
   status: string;
@@ -54,7 +53,7 @@ interface License {
 // Form validation schema
 const schema = yup.object({
   license_number: yup.string().required('License number is required'),
-  license_class: yup.string().required('License class is required'),
+  category: yup.string().required('License category is required'),
   issue_date: yup.string().required('Issue date is required'),
   expiry_date: yup.string().required('Expiry date is required')
     .test('is-after-issue-date', 'Expiry date must be after issue date', 
@@ -67,16 +66,18 @@ const schema = yup.object({
     .required('Citizen is required')
     .test('is-valid-citizen', 'Please select a valid citizen', value => value > 0),
   restrictions: yup.string(),
+  medical_conditions: yup.string(),
 }).required();
 
 // Default values for the form
 const defaultValues: License = {
-  license_class: 'B',
+  category: 'B',
   issue_date: format(new Date(), 'yyyy-MM-dd'),
   expiry_date: format(addYears(new Date(), 5), 'yyyy-MM-dd'),
   status: 'active',
   citizen_id: 0,
   restrictions: '',
+  medical_conditions: '',
   license_number: '' // Empty string by default
 };
 
@@ -100,7 +101,7 @@ const LicenseForm: React.FC = () => {
   });
   
   // Watch values for dependencies
-  const watchLicenseClass = watch('license_class');
+  const watchCategory = watch('category');
   const watchIssueDate = watch('issue_date');
   
   // Set expiry date based on license class and issue date
@@ -110,7 +111,7 @@ const LicenseForm: React.FC = () => {
       let expiryYears = 5; // Default validity period
       
       // Different validity periods based on license class
-      switch (watchLicenseClass) {
+      switch (watchCategory) {
         case 'A':
           expiryYears = 10;
           break;
@@ -125,7 +126,7 @@ const LicenseForm: React.FC = () => {
       const expiryDate = addYears(issueDate, expiryYears);
       setValue('expiry_date', format(expiryDate, 'yyyy-MM-dd'));
     }
-  }, [watchLicenseClass, watchIssueDate, setValue]);
+  }, [watchCategory, watchIssueDate, setValue]);
   
   // Load existing license if in edit mode
   useEffect(() => {
@@ -266,16 +267,20 @@ const LicenseForm: React.FC = () => {
     try {
       console.log('Original form data:', data);
       
+      // Format dates as ISO strings
+      const issueDate = new Date(data.issue_date);
+      const expiryDate = new Date(data.expiry_date);
+      
       // Create API-compatible object
       const submissionData = {
         license_number: data.license_number, // Required field - never undefined
         citizen_id: data.citizen_id,
-        category: data.license_class, // API expects category instead of license_class
-        issue_date: data.issue_date,
-        expiry_date: data.expiry_date,
+        category: data.category,
+        issue_date: format(issueDate, 'yyyy-MM-dd'), // Format dates consistently
+        expiry_date: format(expiryDate, 'yyyy-MM-dd'),
         status: data.status,
         restrictions: data.restrictions || '',
-        medical_conditions: '', // Required by API
+        medical_conditions: data.medical_conditions || '',
         file_url: '',           // Required by API
         barcode_data: ''        // Required by API but will be generated server-side
       };
@@ -432,12 +437,12 @@ const LicenseForm: React.FC = () => {
                 {/* License Class */}
                 <Box sx={{ mb: 2 }}>
                   <Controller
-                    name="license_class"
+                    name="category"
                     control={control}
                     render={({ field }) => (
                       <FormControl 
                         fullWidth 
-                        error={!!errors.license_class}
+                        error={!!errors.category}
                       >
                         <InputLabel id="license-class-label">License Class</InputLabel>
                         <Select
@@ -451,8 +456,8 @@ const LicenseForm: React.FC = () => {
                           <MenuItem value="EB">EB - Light articulated vehicle</MenuItem>
                           <MenuItem value="EC">EC - Heavy articulated vehicle</MenuItem>
                         </Select>
-                        {errors.license_class && (
-                          <FormHelperText>{errors.license_class.message}</FormHelperText>
+                        {errors.category && (
+                          <FormHelperText>{errors.category.message}</FormHelperText>
                         )}
                       </FormControl>
                     )}

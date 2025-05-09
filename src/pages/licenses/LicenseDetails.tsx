@@ -95,17 +95,40 @@ const LicenseDetails: React.FC = () => {
       const licenseData = licenseResponse.data;
       console.log('License data received:', licenseData);
       
-      // Set default status if undefined
-      if (licenseData && licenseData.status === undefined) {
-        licenseData.status = 'pending';
+      // Check if license data is empty or incomplete
+      if (!licenseData || Object.keys(licenseData).length === 0) {
+        console.error('Received empty license data');
+        setError('License data is incomplete or not available');
+        setLoading(false);
+        return;
       }
       
-      setLicense(licenseData);
+      // Set default values for missing fields
+      const processedData = {
+        id: parseInt(id),
+        license_number: licenseData.license_number || 'N/A',
+        category: licenseData.category || 'N/A',
+        issue_date: licenseData.issue_date || new Date().toISOString().split('T')[0],
+        expiry_date: licenseData.expiry_date || new Date().toISOString().split('T')[0],
+        status: licenseData.status || 'pending',
+        citizen_id: licenseData.citizen_id || 0,
+        restrictions: licenseData.restrictions || '',
+        medical_conditions: licenseData.medical_conditions || '',
+        ...licenseData
+      };
+      
+      console.log('Processed license data:', processedData);
+      setLicense(processedData);
       
       // Get citizen details
-      if (licenseData.citizen_id) {
-        const citizenResponse = await api.get(`/citizens/${licenseData.citizen_id}`);
-        setCitizen(citizenResponse.data);
+      if (processedData.citizen_id) {
+        try {
+          const citizenResponse = await api.get(`/citizens/${processedData.citizen_id}`);
+          setCitizen(citizenResponse.data);
+        } catch (citizenError) {
+          console.error('Error fetching citizen details:', citizenError);
+          // Don't set main error, just log it
+        }
       }
     } catch (error: any) {
       console.error('Error fetching license details:', error);
@@ -213,14 +236,25 @@ const LicenseDetails: React.FC = () => {
   };
 
   // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Invalid Date';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return 'Invalid Date';
+    }
   };
 
   // Check if license is expired
   const isExpired = (license: License) => {
     if (!license.status || !license.expiry_date) return false;
-    return new Date(license.expiry_date) < new Date() && license.status === 'active';
+    try {
+      return new Date(license.expiry_date) < new Date() && license.status === 'active';
+    } catch (e) {
+      console.error('Error checking if license is expired:', e);
+      return false;
+    }
   };
 
   if (loading) {
@@ -332,7 +366,7 @@ const LicenseDetails: React.FC = () => {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">License Number</Typography>
-                <Typography variant="body1" fontWeight="bold">{license.license_number}</Typography>
+                <Typography variant="body1" fontWeight="bold">{license.license_number || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">License Category</Typography>
@@ -340,16 +374,22 @@ const LicenseDetails: React.FC = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">Issue Date</Typography>
-                <Typography variant="body1">{formatDate(license.issue_date)}</Typography>
+                <Typography variant="body1">{license.issue_date ? formatDate(license.issue_date) : 'Invalid Date'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">Expiry Date</Typography>
-                <Typography variant="body1">{formatDate(license.expiry_date)}</Typography>
+                <Typography variant="body1">{license.expiry_date ? formatDate(license.expiry_date) : 'Invalid Date'}</Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="body2" color="text.secondary">Restrictions</Typography>
                 <Typography variant="body1">{license.restrictions || 'None'}</Typography>
               </Grid>
+              {license.medical_conditions && (
+                <Grid item xs={12}>
+                  <Typography variant="body2" color="text.secondary">Medical Conditions</Typography>
+                  <Typography variant="body1">{license.medical_conditions}</Typography>
+                </Grid>
+              )}
             </Grid>
           </Paper>
 
