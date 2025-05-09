@@ -26,12 +26,14 @@ import api from '../../api/api';
 // Define the application form data interface
 interface ApplicationFormData {
   citizen_id: number;
-  license_type: string;
-  license_class?: string;
+  applied_category: string;
+  status: string;
   application_date: string;
   notes?: string;
-  application_fee?: number | null;
-  payment_status?: string;
+  documents_verified?: boolean | null;
+  medical_verified?: boolean | null;
+  payment_verified?: boolean | null;
+  review_notes?: string | null;
 }
 
 // Define the citizen interface for the dropdown
@@ -43,8 +45,8 @@ interface Citizen {
   full_name?: string; // This will be computed
 }
 
-// License type options
-const licenseTypes = [
+// License category options
+const licenseCategories = [
   'Driver',
   'Vehicle',
   'Business',
@@ -52,48 +54,40 @@ const licenseTypes = [
   'Recreational'
 ];
 
-// License classes (for driver's licenses)
-const licenseClasses = [
-  'A',
-  'B',
-  'C',
-  'D',
-  'E'
-];
-
-// Payment status options
-const paymentStatuses = [
-  'paid',
-  'pending',
-  'waived'
+// Status options
+const statusOptions = [
+  'submitted',
+  'under_review',
+  'approved',
+  'rejected'
 ];
 
 // Validation schema
 const schema = yup.object({
   citizen_id: yup.number()
     .required('Citizen is required')
-    .test('is-valid-citizen', 'Please select a valid citizen', value => value > 0),
-  license_type: yup.string().required('License type is required'),
-  license_class: yup.string().when('license_type', {
-    is: 'Driver',
-    then: (schema: yup.StringSchema) => schema.required('License class is required for driver licenses'),
-    otherwise: (schema: yup.StringSchema) => schema
-  }),
+    .test('is-valid-citizen', 'Please select a valid citizen', (value) => value > 0),
+  applied_category: yup.string().required('License category is required'),
+  status: yup.string().required('Status is required'),
   application_date: yup.string().required('Application date is required'),
   notes: yup.string(),
-  application_fee: yup.number().nullable().transform((v: any) => (isNaN(v) ? null : v)),
-  payment_status: yup.string()
+  documents_verified: yup.boolean().nullable(),
+  medical_verified: yup.boolean().nullable(),
+  payment_verified: yup.boolean().nullable(),
+  review_notes: yup.string().nullable()
 }).required();
 
 // Default values for the form
 const defaultValues: ApplicationFormData = {
   citizen_id: 0,
-  license_type: '',
-  license_class: '',
+  applied_category: '',
+  status: 'submitted',
   application_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
   notes: '',
-  application_fee: undefined,
-  payment_status: 'pending'
+  documents_verified: null,
+  medical_verified: null,
+  payment_verified: null,
+  review_notes: null
 };
 
 const ApplicationForm: React.FC = () => {
@@ -110,16 +104,12 @@ const ApplicationForm: React.FC = () => {
     control, 
     handleSubmit, 
     reset,
-    watch,
     setValue,
     formState: { errors }
   } = useForm<ApplicationFormData>({
     resolver: yupResolver(schema),
     defaultValues
   });
-
-  // Watch license type to show/hide license class field
-  const licenseType = watch('license_type');
 
   // Fetch all citizens for the dropdown
   useEffect(() => {
@@ -194,16 +184,21 @@ const ApplicationForm: React.FC = () => {
       
       console.log('Submitting application with data:', data);
       
+      // Format the date correctly with ISO string
+      const formattedDate = new Date(data.application_date);
+      const isoDate = formattedDate.toISOString();
+      
       // Prepare submission data with all required fields
       const submissionData = {
         citizen_id: data.citizen_id,
-        license_type: data.license_type,
-        license_class: data.license_type === 'Driver' ? data.license_class : undefined,
-        application_date: data.application_date,
+        applied_category: data.applied_category,
+        status: data.status,
+        application_date: isoDate,
         notes: data.notes || '',
-        application_fee: data.application_fee || 0,
-        payment_status: data.payment_status || 'pending',
-        status: 'pending' // Set default status
+        documents_verified: data.documents_verified,
+        medical_verified: data.medical_verified,
+        payment_verified: data.payment_verified,
+        review_notes: data.review_notes
       };
       
       console.log('Processed submission data:', submissionData);
@@ -341,54 +336,54 @@ const ApplicationForm: React.FC = () => {
             </Grid>
             <Grid item xs={12} md={6}>
               <Controller
-                name="license_type"
+                name="applied_category"
                 control={control}
                 render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.license_type}>
-                    <InputLabel id="license-type-label">License Type *</InputLabel>
+                  <FormControl fullWidth error={!!errors.applied_category}>
+                    <InputLabel id="applied-category-label">License Category *</InputLabel>
                     <Select
                       {...field}
-                      labelId="license-type-label"
-                      label="License Type *"
+                      labelId="applied-category-label"
+                      label="License Category *"
                       disabled={loading}
                     >
-                      {licenseTypes.map((type) => (
-                        <MenuItem key={type} value={type}>{type}</MenuItem>
+                      {licenseCategories.map((category) => (
+                        <MenuItem key={category} value={category}>{category}</MenuItem>
                       ))}
                     </Select>
-                    {errors.license_type && (
-                      <FormHelperText>{errors.license_type.message}</FormHelperText>
+                    {errors.applied_category && (
+                      <FormHelperText>{errors.applied_category.message}</FormHelperText>
                     )}
                   </FormControl>
                 )}
               />
             </Grid>
-            {licenseType === 'Driver' && (
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="license_class"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.license_class}>
-                      <InputLabel id="license-class-label">License Class *</InputLabel>
-                      <Select
-                        {...field}
-                        labelId="license-class-label"
-                        label="License Class *"
-                        disabled={loading}
-                      >
-                        {licenseClasses.map((cls) => (
-                          <MenuItem key={cls} value={cls}>Class {cls}</MenuItem>
-                        ))}
-                      </Select>
-                      {errors.license_class && (
-                        <FormHelperText>{errors.license_class.message}</FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-            )}
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth error={!!errors.status}>
+                    <InputLabel id="status-label">Status *</InputLabel>
+                    <Select
+                      {...field}
+                      labelId="status-label"
+                      label="Status *"
+                      disabled={loading}
+                    >
+                      {statusOptions.map((status) => (
+                        <MenuItem key={status} value={status}>
+                          {status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {errors.status && (
+                      <FormHelperText>{errors.status.message}</FormHelperText>
+                    )}
+                  </FormControl>
+                )}
+              />
+            </Grid>
             <Grid item xs={12} md={6}>
               <Controller
                 name="application_date"
@@ -409,42 +404,78 @@ const ApplicationForm: React.FC = () => {
             </Grid>
             <Grid item xs={12} md={6}>
               <Controller
-                name="application_fee"
+                name="documents_verified"
                 control={control}
                 render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Application Fee"
-                    type="number"
-                    fullWidth
-                    InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-                    error={!!errors.application_fee}
-                    helperText={errors.application_fee?.message}
-                    disabled={loading}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel id="documents-verified-label">Documents Verified</InputLabel>
+                    <Select
+                      {...field}
+                      labelId="documents-verified-label"
+                      label="Documents Verified"
+                      disabled={loading}
+                      value={field.value === null ? "" : field.value ? "true" : "false"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value === "" ? null : value === "true");
+                      }}
+                    >
+                      <MenuItem value="">Not Verified</MenuItem>
+                      <MenuItem value="true">Yes</MenuItem>
+                      <MenuItem value="false">No</MenuItem>
+                    </Select>
+                  </FormControl>
                 )}
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <Controller
-                name="payment_status"
+                name="medical_verified"
                 control={control}
                 render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.payment_status}>
-                    <InputLabel id="payment-status-label">Payment Status</InputLabel>
+                  <FormControl fullWidth>
+                    <InputLabel id="medical-verified-label">Medical Verified</InputLabel>
                     <Select
                       {...field}
-                      labelId="payment-status-label"
-                      label="Payment Status"
+                      labelId="medical-verified-label"
+                      label="Medical Verified"
                       disabled={loading}
+                      value={field.value === null ? "" : field.value ? "true" : "false"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value === "" ? null : value === "true");
+                      }}
                     >
-                      {paymentStatuses.map((status) => (
-                        <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>
-                      ))}
+                      <MenuItem value="">Not Verified</MenuItem>
+                      <MenuItem value="true">Yes</MenuItem>
+                      <MenuItem value="false">No</MenuItem>
                     </Select>
-                    {errors.payment_status && (
-                      <FormHelperText>{errors.payment_status.message}</FormHelperText>
-                    )}
+                  </FormControl>
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="payment_verified"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth>
+                    <InputLabel id="payment-verified-label">Payment Verified</InputLabel>
+                    <Select
+                      {...field}
+                      labelId="payment-verified-label"
+                      label="Payment Verified"
+                      disabled={loading}
+                      value={field.value === null ? "" : field.value ? "true" : "false"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value === "" ? null : value === "true");
+                      }}
+                    >
+                      <MenuItem value="">Not Verified</MenuItem>
+                      <MenuItem value="true">Yes</MenuItem>
+                      <MenuItem value="false">No</MenuItem>
+                    </Select>
                   </FormControl>
                 )}
               />
@@ -459,9 +490,25 @@ const ApplicationForm: React.FC = () => {
                     label="Notes"
                     fullWidth
                     multiline
-                    rows={4}
+                    rows={2}
                     error={!!errors.notes}
                     helperText={errors.notes?.message}
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Controller
+                name="review_notes"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Review Notes"
+                    fullWidth
+                    multiline
+                    rows={2}
                     disabled={loading}
                   />
                 )}
