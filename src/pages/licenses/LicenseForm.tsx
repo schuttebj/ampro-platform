@@ -38,7 +38,7 @@ interface Citizen {
 
 interface License {
   id?: number;
-  license_number?: string;
+  license_number: string;
   license_class: string;
   category?: string;
   issue_date: string;
