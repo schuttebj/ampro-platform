@@ -32,16 +32,19 @@ import api from '../../api/api';
 interface License {
   id: number;
   license_number: string;
-  license_class: string;
+  category?: string;
   issue_date: string;
   expiry_date: string;
-  status: 'active' | 'expired' | 'suspended' | 'revoked' | 'pending';
+  status?: 'active' | 'expired' | 'suspended' | 'revoked' | 'pending';
   citizen_id: number;
   citizen_name?: string;
   citizen_id_number?: string;
   restrictions?: string;
-  created_at: string;
-  updated_at: string;
+  medical_conditions?: string;
+  file_url?: string;
+  barcode_data?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface Citizen {
@@ -295,11 +298,11 @@ const LicenseDetails: React.FC = () => {
                 License Information
               </Typography>
               <Chip 
-                label={license.status.toUpperCase()} 
-                color={statusColors[license.status] || 'default'} 
+                label={license.status ? license.status.toUpperCase() : 'UNKNOWN'} 
+                color={license.status ? (statusColors[license.status] || 'default') : 'default'} 
                 size="medium"
               />
-              {isExpired(license) && (
+              {license.status && isExpired(license) && (
                 <Chip 
                   label="EXPIRED" 
                   color="error" 
@@ -315,8 +318,8 @@ const LicenseDetails: React.FC = () => {
                 <Typography variant="body1" fontWeight="bold">{license.license_number}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2" color="text.secondary">License Class</Typography>
-                <Typography variant="body1">{license.license_class}</Typography>
+                <Typography variant="body2" color="text.secondary">License Category</Typography>
+                <Typography variant="body1">{license.category || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">Issue Date</Typography>
