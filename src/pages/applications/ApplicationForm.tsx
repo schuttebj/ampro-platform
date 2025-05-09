@@ -47,11 +47,12 @@ interface Citizen {
 
 // License category options
 const licenseCategories = [
-  'Driver',
-  'Vehicle',
-  'Business',
-  'Professional',
-  'Recreational'
+  'A',
+  'B',
+  'C',
+  'D',
+  'EB',
+  'EC'
 ];
 
 // Status options

@@ -93,6 +93,13 @@ const LicenseDetails: React.FC = () => {
       // Get license details
       const licenseResponse = await api.get(`/licenses/${id}`);
       const licenseData = licenseResponse.data;
+      console.log('License data received:', licenseData);
+      
+      // Set default status if undefined
+      if (licenseData && licenseData.status === undefined) {
+        licenseData.status = 'pending';
+      }
+      
       setLicense(licenseData);
       
       // Get citizen details
@@ -212,6 +219,7 @@ const LicenseDetails: React.FC = () => {
 
   // Check if license is expired
   const isExpired = (license: License) => {
+    if (!license.status || !license.expiry_date) return false;
     return new Date(license.expiry_date) < new Date() && license.status === 'active';
   };
 
@@ -297,11 +305,20 @@ const LicenseDetails: React.FC = () => {
               <Typography variant="h5" gutterBottom>
                 License Information
               </Typography>
-              <Chip 
-                label={license.status ? license.status.toUpperCase() : 'UNKNOWN'} 
-                color={license.status ? (statusColors[license.status] || 'default') : 'default'} 
-                size="medium"
-              />
+              {license.status !== undefined && (
+                <Chip 
+                  label={license.status.toUpperCase()} 
+                  color={statusColors[license.status] || 'default'} 
+                  size="medium"
+                />
+              )}
+              {!license.status && (
+                <Chip 
+                  label="PENDING" 
+                  color="default" 
+                  size="medium"
+                />
+              )}
               {license.status && isExpired(license) && (
                 <Chip 
                   label="EXPIRED" 
