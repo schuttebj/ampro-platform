@@ -282,21 +282,32 @@ const LicenseForm: React.FC = () => {
       
       console.log('Processed submission data:', submissionData);
       
+      let responseData;
+      
       if (isEditMode) {
         // Update existing license
         console.log(`Updating license with ID: ${id}`);
         const response = await api.put(`/licenses/${id}`, submissionData);
         console.log('Update response:', response.data);
+        responseData = response.data;
         setLoading(false);
+        // Navigate to license details page
         navigate(`/licenses/${id}`);
       } else {
         // Create new license
         console.log('Creating new license');
         const response = await api.post('/licenses', submissionData);
         console.log('Create response:', response.data);
+        responseData = response.data;
         setLoading(false);
-        navigate(`/licenses/${response.data.id}`);
+        // Navigate to the new license details page
+        const newLicenseId = response.data.id;
+        navigate(`/licenses/${newLicenseId}`);
       }
+      
+      // Add success notification
+      console.log(`License ${isEditMode ? 'updated' : 'created'} successfully.`);
+      return responseData;
     } catch (error: any) {
       console.error('Error saving license:', error);
       console.error('Error details:', {
@@ -337,6 +348,7 @@ const LicenseForm: React.FC = () => {
       }
       
       setLoading(false);
+      return null;
     }
   };
   

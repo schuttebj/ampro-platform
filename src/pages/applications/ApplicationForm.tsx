@@ -214,6 +214,10 @@ const ApplicationForm: React.FC = () => {
         console.log(`Updating application with ID: ${id}`);
         response = await api.put(`/applications/${id}`, submissionData);
         console.log('Update response:', response);
+        
+        // Navigate to application detail page
+        setLoading(false);
+        navigate(`/applications/${id}`);
       } else {
         console.log('Creating new application');
         response = await api.post('/applications', submissionData);
@@ -223,15 +227,15 @@ const ApplicationForm: React.FC = () => {
         if (response.status !== 200 && response.status !== 201) {
           throw new Error(`Unexpected response status: ${response.status}`);
         }
+        
+        // Navigate to the new application detail page
+        setLoading(false);
+        const newApplicationId = response.data.id;
+        navigate(`/applications/${newApplicationId}`);
       }
       
-      setLoading(false);
-      console.log('API call successful, navigating to /applications');
-      
-      // Add a slight delay to ensure state is updated properly
-      setTimeout(() => {
-        navigate('/applications');
-      }, 100);
+      // Add success message
+      console.log(`Application ${isEditMode ? 'updated' : 'created'} successfully`);
     } catch (error: any) {
       console.error('Error saving application:', error);
       console.error('Error details:', {
@@ -242,7 +246,19 @@ const ApplicationForm: React.FC = () => {
       
       // Better error message display from API validation errors
       if (error.response?.data?.detail) {
-        setError(error.response.data.detail);
+        try {
+          // Handle the array of validation errors from Pydantic
+          if (Array.isArray(error.response.data.detail)) {
+            const errorMessages = error.response.data.detail.map((err: any) => {
+              return `${err.loc[err.loc.length - 1]}: ${err.msg}`;
+            });
+            setError(errorMessages.join(', '));
+          } else {
+            setError(error.response.data.detail);
+          }
+        } catch (parseError) {
+          setError(error.response.data.detail);
+        }
       } else if (typeof error.response?.data === 'object') {
         // Format validation errors from the API
         const errorMessages = [];
