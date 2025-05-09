@@ -12,6 +12,12 @@ const api = axios.create({
   },
 });
 
+// Add authorization header if token exists
+const token = localStorage.getItem('accessToken');
+if (token) {
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
+
 // Helper function to create form-urlencoded data
 export const createFormData = (data: Record<string, any>): URLSearchParams => {
   const formData = new URLSearchParams();
@@ -29,37 +35,33 @@ api.interceptors.response.use(
   (response) => response,
   // @ts-ignore - Error parameter
   async (error) => {
+    // If the error is a network error or the server doesn't respond, just reject
+    if (!error.response) {
+      return Promise.reject(error);
+    }
+    
     // @ts-ignore - Allow _retry property
     const originalRequest = error.config;
     
-    // If error is 401 (Unauthorized) and not already retrying
+    // Only handle 401 errors, and don't retry if we've already tried once
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log("Handling 401 error with token refresh");
       originalRequest._retry = true;
       
       try {
-        // Get the refresh token from storage
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
+        // Get the access token - we may not need to refresh as the API may not support this
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+          console.log("No access token found, redirecting to login");
+          window.location.href = '/login';
+          return Promise.reject(error);
         }
         
-        // Get new access token
-        const response = await axios.post(
-          `${API_URL}/api/v1/auth/token`,
-          { refresh_token: refreshToken }
-        );
-        
-        const { access_token } = response.data;
-        
-        // Update access token in API service
-        if (access_token) {
-          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        }
-        
-        // Retry the original request
+        // Set the token in the header and retry the request
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh fails, redirect to login
+        console.error("Error during auth handling:", refreshError);
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

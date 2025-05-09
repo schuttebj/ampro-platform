@@ -40,11 +40,15 @@ interface License {
   id?: number;
   license_number?: string;
   license_class: string;
+  category?: string;
   issue_date: string;
   expiry_date: string;
   status: string;
   citizen_id: number;
   restrictions?: string;
+  medical_conditions?: string;
+  file_url?: string;
+  barcode_data?: string;
 }
 
 // Form validation schema
@@ -206,17 +210,38 @@ const LicenseForm: React.FC = () => {
     setError('');
     
     try {
+      console.log('Original form data:', data);
+      
+      // Map license_class to category for API
+      const submissionData = {
+        ...data,
+        category: data.license_class, // Use license_class as category for API
+      };
+      
+      console.log('Processed submission data:', submissionData);
+      
       if (isEditMode) {
         // Update existing license
-        await api.put(`/licenses/${id}`, data);
+        console.log(`Updating license with ID: ${id}`);
+        const response = await api.put(`/licenses/${id}`, submissionData);
+        console.log('Update response:', response.data);
+        setLoading(false);
         navigate(`/licenses/${id}`);
       } else {
         // Create new license
-        const response = await api.post('/licenses', data);
+        console.log('Creating new license');
+        const response = await api.post('/licenses', submissionData);
+        console.log('Create response:', response.data);
+        setLoading(false);
         navigate(`/licenses/${response.data.id}`);
       }
     } catch (error: any) {
       console.error('Error saving license:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
       setError(error.response?.data?.detail || 'Failed to save license data.');
       setLoading(false);
     }

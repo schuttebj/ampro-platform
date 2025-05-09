@@ -193,19 +193,30 @@ const ApplicationForm: React.FC = () => {
       
       console.log('Processed submission data:', submissionData);
       
+      let response;
+      
       if (isEditMode) {
         console.log(`Updating application with ID: ${id}`);
-        const response = await api.put(`/applications/${id}`, submissionData);
-        console.log('Update response:', response.data);
+        response = await api.put(`/applications/${id}`, submissionData);
+        console.log('Update response:', response);
       } else {
         console.log('Creating new application');
-        const response = await api.post('/applications', submissionData);
-        console.log('Create response:', response.data);
+        response = await api.post('/applications', submissionData);
+        console.log('Create response:', response);
+        
+        // Check if we're getting a proper API response
+        if (response.status !== 200 && response.status !== 201) {
+          throw new Error(`Unexpected response status: ${response.status}`);
+        }
       }
       
       setLoading(false);
       console.log('API call successful, navigating to /applications');
-      navigate('/applications');
+      
+      // Add a slight delay to ensure state is updated properly
+      setTimeout(() => {
+        navigate('/applications');
+      }, 100);
     } catch (error: any) {
       console.error('Error saving application:', error);
       console.error('Error details:', {
