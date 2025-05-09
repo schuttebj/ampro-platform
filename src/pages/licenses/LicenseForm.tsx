@@ -62,7 +62,9 @@ const schema = yup.object({
         return !issue_date || !value || new Date(value) > new Date(issue_date);
       }),
   status: yup.string().required('Status is required'),
-  citizen_id: yup.number().required('Citizen is required'),
+  citizen_id: yup.number()
+    .required('Citizen is required')
+    .test('is-valid-citizen', 'Please select a valid citizen', value => value > 0),
   restrictions: yup.string(),
 }).required();
 
@@ -138,8 +140,16 @@ const LicenseForm: React.FC = () => {
           
           // Fetch citizen details
           if (licenseData.citizen_id) {
-            const citizenResponse = await api.get(`/citizens/${licenseData.citizen_id}`);
-            setSelectedCitizen(citizenResponse.data);
+            console.log(`Fetching citizen details for ID: ${licenseData.citizen_id}`);
+            try {
+              const citizenResponse = await api.get(`/citizens/${licenseData.citizen_id}`);
+              console.log('Found citizen for license:', citizenResponse.data);
+              setSelectedCitizen(citizenResponse.data);
+              setValue('citizen_id', citizenResponse.data.id);
+            } catch (error) {
+              console.error('Error fetching citizen:', error);
+              setError('Could not fetch citizen data. The license may be associated with a deleted citizen.');
+            }
           }
         } catch (error: any) {
           console.error('Error fetching license:', error);
@@ -151,7 +161,7 @@ const LicenseForm: React.FC = () => {
       
       fetchLicense();
     }
-  }, [id, isEditMode, reset]);
+  }, [id, isEditMode, reset, setValue]);
   
   // Load citizens for autocomplete
   useEffect(() => {
@@ -184,7 +194,10 @@ const LicenseForm: React.FC = () => {
   const handleCitizenChange = (citizen: Citizen | null) => {
     setSelectedCitizen(citizen);
     if (citizen) {
+      console.log('Citizen selected:', citizen);
       setValue('citizen_id', citizen.id);
+      // Log the current form values after selection
+      console.log('Form values after citizen selection:', watch());
     } else {
       setValue('citizen_id', 0);
     }
@@ -209,13 +222,43 @@ const LicenseForm: React.FC = () => {
     setLoading(true);
     setError('');
     
+    // Log form state at submission time
+    console.log('Form state at submission:', {
+      data,
+      selectedCitizen,
+      watch: watch(),
+      citizenId: data.citizen_id,
+      citizens
+    });
+    
+    // Validate citizen_id is not zero
+    if (data.citizen_id === 0) {
+      setError('Please select a valid citizen');
+      setLoading(false);
+      return;
+    }
+    
+    // Double check valid citizen
+    const validCitizen = citizens.find(c => c.id === data.citizen_id);
+    if (!validCitizen && data.citizen_id > 0) {
+      console.log('Citizen found in form but not in citizens list. Using ID anyway.');
+    }
+    
     try {
       console.log('Original form data:', data);
       
-      // Map license_class to category for API
+      // Create API-compatible object
       const submissionData = {
-        ...data,
-        category: data.license_class, // Use license_class as category for API
+        license_number: data.license_number || undefined,
+        citizen_id: data.citizen_id,
+        category: data.license_class, // API expects category instead of license_class
+        issue_date: data.issue_date,
+        expiry_date: data.expiry_date,
+        status: data.status,
+        restrictions: data.restrictions || '',
+        medical_conditions: '', // Required by API
+        file_url: '',           // Required by API
+        barcode_data: ''        // Required by API but will be generated server-side
       };
       
       console.log('Processed submission data:', submissionData);
@@ -242,7 +285,26 @@ const LicenseForm: React.FC = () => {
         status: error.response?.status,
         data: error.response?.data
       });
-      setError(error.response?.data?.detail || 'Failed to save license data.');
+      
+      // Better error message display from API validation errors
+      if (error.response?.data?.detail) {
+        setError(error.response.data.detail);
+      } else if (typeof error.response?.data === 'object') {
+        // Format validation errors from the API
+        const errorMessages = [];
+        for (const key in error.response.data) {
+          const errorMsg = `${key}: ${error.response.data[key]}`;
+          errorMessages.push(errorMsg);
+        }
+        if (errorMessages.length > 0) {
+          setError(errorMessages.join(', '));
+        } else {
+          setError('Failed to save license data: ' + error.message);
+        }
+      } else {
+        setError('Failed to save license data: ' + error.message);
+      }
+      
       setLoading(false);
     }
   };
@@ -468,7 +530,10 @@ const LicenseForm: React.FC = () => {
                     id="citizen-autocomplete"
                     options={citizens}
                     value={selectedCitizen}
-                    onChange={(_, newValue) => handleCitizenChange(newValue)}
+                    onChange={(_, newValue) => {
+                      console.log('Citizen selected from dropdown:', newValue);
+                      handleCitizenChange(newValue);
+                    }}
                     getOptionLabel={(option) => 
                       `${option.id_number} - ${option.first_name} ${option.last_name}`
                     }

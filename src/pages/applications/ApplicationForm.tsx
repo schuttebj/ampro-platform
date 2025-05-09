@@ -70,7 +70,9 @@ const paymentStatuses = [
 
 // Validation schema
 const schema = yup.object({
-  citizen_id: yup.number().required('Citizen is required'),
+  citizen_id: yup.number()
+    .required('Citizen is required')
+    .test('is-valid-citizen', 'Please select a valid citizen', value => value > 0),
   license_type: yup.string().required('License type is required'),
   license_class: yup.string().when('license_type', {
     is: 'Driver',
@@ -183,12 +185,25 @@ const ApplicationForm: React.FC = () => {
       setLoading(true);
       setError('');
       
+      // Validate citizen_id is not zero
+      if (data.citizen_id === 0) {
+        setError('Please select a valid citizen');
+        setLoading(false);
+        return;
+      }
+      
       console.log('Submitting application with data:', data);
       
-      // Only include license_class if license_type is 'Driver'
+      // Prepare submission data with all required fields
       const submissionData = {
-        ...data,
-        license_class: data.license_type === 'Driver' ? data.license_class : undefined
+        citizen_id: data.citizen_id,
+        license_type: data.license_type,
+        license_class: data.license_type === 'Driver' ? data.license_class : undefined,
+        application_date: data.application_date,
+        notes: data.notes || '',
+        application_fee: data.application_fee || 0,
+        payment_status: data.payment_status || 'pending',
+        status: 'pending' // Set default status
       };
       
       console.log('Processed submission data:', submissionData);
@@ -224,7 +239,26 @@ const ApplicationForm: React.FC = () => {
         status: error.response?.status,
         data: error.response?.data
       });
-      setError(error.response?.data?.detail || 'Failed to save application.');
+      
+      // Better error message display from API validation errors
+      if (error.response?.data?.detail) {
+        setError(error.response.data.detail);
+      } else if (typeof error.response?.data === 'object') {
+        // Format validation errors from the API
+        const errorMessages = [];
+        for (const key in error.response.data) {
+          const errorMsg = `${key}: ${error.response.data[key]}`;
+          errorMessages.push(errorMsg);
+        }
+        if (errorMessages.length > 0) {
+          setError(errorMessages.join(', '));
+        } else {
+          setError('Failed to save application data: ' + error.message);
+        }
+      } else {
+        setError('Failed to save application data: ' + error.message);
+      }
+      
       setLoading(false);
     }
   };

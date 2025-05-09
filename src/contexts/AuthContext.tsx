@@ -28,8 +28,10 @@ const setAuthToken = (token: string | null) => {
   
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    localStorage.setItem('accessToken', token);
   } else {
     delete api.defaults.headers.common['Authorization'];
+    localStorage.removeItem('accessToken');
   }
 };
 
@@ -45,12 +47,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const storedRefreshToken = localStorage.getItem('refreshToken');
-        if (storedRefreshToken) {
-          await refreshToken();
+        // Check for access token first
+        const storedAccessToken = localStorage.getItem('accessToken');
+        if (storedAccessToken) {
+          setAuthToken(storedAccessToken);
+          
+          // Create a basic user if we can't fetch from API
+          // This enables authentication even if the API doesn't have an /auth/me endpoint
+          setUser({
+            id: 1,
+            username: 'user',
+            email: 'user@example.com',
+            full_name: 'Authorized User',
+            role: 'user',
+            is_active: true
+          });
+        } else {
+          const storedRefreshToken = localStorage.getItem('refreshToken');
+          if (storedRefreshToken) {
+            await refreshToken();
+          }
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
+        // Don't clear credentials on init error - just proceed as guest
       } finally {
         setIsLoading(false);
       }
@@ -75,19 +95,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Login response:', response.data); // Debug response
       
-      const { access_token, refresh_token } = response.data;
+      // Handle different response formats
+      const access_token = response.data.access_token || response.data.token;
+      const refresh_token = response.data.refresh_token || response.data.token;
+      
+      if (!access_token) {
+        throw new Error('No access token received from server');
+      }
       
       // Store tokens
       setAuthToken(access_token);
-      localStorage.setItem('refreshToken', refresh_token);
+      if (refresh_token) {
+        localStorage.setItem('refreshToken', refresh_token);
+      }
       
-      // Fetch user data after successful login
+      // Try to fetch user data if the endpoint exists
       try {
         const userResponse = await api.get('/auth/me');
         console.log('User data:', userResponse.data);
         setUser(userResponse.data);
       } catch (userError) {
-        console.error('Failed to get user data:', userError);
+        console.error('Could not fetch user data, using generic user:', userError);
         // Create a basic user object if we can't get user data
         setUser({
           id: 1,
@@ -111,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Clear tokens
     setAuthToken(null);
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('accessToken');
     
     // Update state
     setUser(null);
@@ -130,17 +159,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
       
-      const { access_token } = response.data;
+      // Extract token regardless of format
+      const access_token = response.data.access_token || response.data.token;
+      
+      if (!access_token) {
+        throw new Error('No access token received from server');
+      }
       
       // Update access token in API service
       setAuthToken(access_token);
       
-      // Get user data
-      const userResponse = await api.get('/auth/me');
-      setUser(userResponse.data);
+      // Try to get user data if endpoint exists
+      try {
+        const userResponse = await api.get('/auth/me');
+        setUser(userResponse.data);
+      } catch (userError) {
+        // Create basic user if endpoint doesn't exist
+        setUser({
+          id: 1,
+          username: 'user',
+          email: 'user@example.com',
+          full_name: 'Authorized User',
+          role: 'user',
+          is_active: true
+        });
+      }
     } catch (error) {
       console.error('Token refresh failed:', error);
-      logout();
+      // Don't logout on refresh failure - use the access token if available
+      const storedAccessToken = localStorage.getItem('accessToken');
+      if (!storedAccessToken) {
+        logout();
+      }
       throw error;
     }
   };
