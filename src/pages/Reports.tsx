@@ -310,7 +310,15 @@ const Reports: React.FC = () => {
                       label="From Date"
                       value={dateFrom}
                       onChange={setDateFrom}
-                      renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+                      slots={{
+                        textField: TextField
+                      }}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          margin: 'normal'
+                        }
+                      }}
                     />
                   </Box>
 
@@ -319,7 +327,15 @@ const Reports: React.FC = () => {
                       label="To Date"
                       value={dateTo}
                       onChange={setDateTo}
-                      renderInput={(params) => <TextField {...params} fullWidth margin="normal" />}
+                      slots={{
+                        textField: TextField
+                      }}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          margin: 'normal'
+                        }
+                      }}
                     />
                   </Box>
 
