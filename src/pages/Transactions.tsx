@@ -66,7 +66,7 @@ const Transactions: React.FC = () => {
           LICENSE_ISSUE: 'primary',
           LICENSE_RENEWAL: 'secondary',
           APPLICATION_FEE: 'warning',
-          PENALTY: 'error'
+          PENALTY: 'warning'
         };
         return (
           <Chip
