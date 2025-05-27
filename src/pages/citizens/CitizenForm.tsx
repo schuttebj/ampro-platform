@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import api from '../../api/api';
+import ImageUpload from '../../components/ImageUpload';
 
 // Define the Citizen type for form
 interface CitizenFormData {
@@ -43,6 +44,7 @@ interface CitizenFormData {
   country?: string;
   birth_place?: string;
   nationality?: string;
+  photo_url?: string;
   is_active: boolean;
 }
 
@@ -86,6 +88,7 @@ const defaultValues: CitizenFormData = {
   country: 'South Africa',
   birth_place: '',
   nationality: '',
+  photo_url: '',
   is_active: true
 };
 
@@ -348,6 +351,44 @@ const CitizenForm: React.FC = () => {
                   />
                 )}
               />
+            </Grid>
+          </Grid>
+
+          {/* Photo Upload Section */}
+          <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+            Photo
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <Controller
+                name="photo_url"
+                control={control}
+                render={({ field }) => (
+                  <ImageUpload
+                    value={field.value}
+                    onChange={field.onChange}
+                    label="Citizen Photo"
+                    maxSize={2} // 2MB limit
+                    width={150}
+                    height={180}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={8}>
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>Photo Guidelines:</strong>
+                </Typography>
+                <Typography variant="body2" component="ul" sx={{ mt: 1, pl: 2 }}>
+                  <li>Use a recent, clear photo of the citizen</li>
+                  <li>Photo should be passport-style (head and shoulders)</li>
+                  <li>Ensure good lighting and neutral background</li>
+                  <li>Maximum file size: 2MB</li>
+                  <li>Accepted formats: JPG, PNG</li>
+                </Typography>
+              </Alert>
             </Grid>
           </Grid>
 

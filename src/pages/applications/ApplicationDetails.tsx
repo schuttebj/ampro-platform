@@ -26,9 +26,11 @@ import {
   ArrowBack as ArrowBackIcon,
   Delete as DeleteIcon,
   CheckCircle as ApproveIcon,
-  Cancel as RejectIcon
+  Cancel as RejectIcon,
+  Visibility as PreviewIcon
 } from '@mui/icons-material';
 import api from '../../api/api';
+import LicensePreview from '../../components/LicensePreview';
 
 // Define the Application interface
 interface Application {
@@ -63,6 +65,7 @@ const ApplicationDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [application, setApplication] = useState<Application | null>(null);
+  const [citizen, setCitizen] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -76,6 +79,17 @@ const ApplicationDetails: React.FC = () => {
         
         const response = await api.get(`/applications/${id}`);
         setApplication(response.data);
+        
+        // Fetch citizen data for license preview
+        if (response.data.citizen_id) {
+          try {
+            const citizenResponse = await api.get(`/citizens/${response.data.citizen_id}`);
+            setCitizen(citizenResponse.data);
+          } catch (citizenError) {
+            console.error('Error fetching citizen details:', citizenError);
+            // Don't set main error, just log it
+          }
+        }
       } catch (error: any) {
         console.error('Error fetching application details:', error);
         setError(error.response?.data?.detail || 'Failed to load application details.');
@@ -350,6 +364,45 @@ const ApplicationDetails: React.FC = () => {
             )}
           </Grid>
         </Grid>
+
+        {/* License Preview Section */}
+        {citizen && (application.status === 'pending' || application.status === 'approved') && (
+          <Grid container spacing={3} sx={{ mt: 2 }}>
+            <Grid item xs={12}>
+              <Card>
+                <CardHeader 
+                  title="License Preview" 
+                  avatar={<PreviewIcon />}
+                  subheader="Preview of the license that will be generated upon approval"
+                />
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <LicensePreview
+                      application={{
+                        id: application.id,
+                        license_type: application.license_type,
+                        license_class: application.license_class,
+                        status: application.status
+                      }}
+                      citizen={{
+                        id: citizen.id,
+                        id_number: citizen.id_number,
+                        first_name: citizen.first_name,
+                        last_name: citizen.last_name,
+                        date_of_birth: citizen.date_of_birth,
+                        gender: citizen.gender,
+                        address_line1: citizen.address_line1,
+                        city: citizen.city,
+                        state_province: citizen.state_province,
+                        photo_url: citizen.photo_url
+                      }}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
 
         <Box sx={{ mt: 3 }}>
           <Button
