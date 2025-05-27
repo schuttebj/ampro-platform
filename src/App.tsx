@@ -26,6 +26,8 @@ import ApplicationForm from './pages/applications/ApplicationForm';
 import LicenseList from './pages/licenses/LicenseList';
 import LicenseDetails from './pages/licenses/LicenseDetails';
 import LicenseForm from './pages/licenses/LicenseForm';
+import Transactions from './pages/Transactions';
+import Reports from './pages/Reports';
 
 // Create the query client
 const queryClient = new QueryClient();
@@ -98,8 +100,11 @@ const App: React.FC = () => {
                   <Route path="/licenses/:id/edit" element={<LicenseForm />} />
                   <Route path="/licenses/new" element={<LicenseForm />} />
                   
-                  <Route path="/transactions" element={<div>Transactions Page</div>} />
-                  <Route path="/reports" element={<div>Reports Page</div>} />
+                  {/* New implemented pages */}
+                  <Route path="/transactions" element={<Transactions />} />
+                  <Route path="/reports" element={<Reports />} />
+                  
+                  {/* Placeholder pages - to be implemented */}
                   <Route path="/settings" element={<div>Settings Page</div>} />
                   <Route path="/profile" element={<div>Profile Page</div>} />
                 </Route>
