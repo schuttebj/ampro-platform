@@ -4,7 +4,7 @@ export interface User {
   username: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'manager' | 'officer' | 'clerk';
+  role: 'admin' | 'manager' | 'officer' | 'printer' | 'viewer';
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
@@ -219,10 +219,10 @@ export interface PrintJobComplete {
 }
 
 export interface PrintQueue {
-  jobs: PrintJob[];
+  print_jobs: PrintJob[];
   total_count: number;
-  queued_count: number;
-  assigned_count: number;
+  skip: number;
+  limit: number;
 }
 
 export interface PrintJobStatistics {

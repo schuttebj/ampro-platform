@@ -115,7 +115,7 @@ const WorkflowDashboard: React.FC = () => {
 
       setPrintStats(printStatsData);
       setShippingStats(shippingStatsData);
-      setPrintQueue(printQueueData.jobs || []);
+      setPrintQueue(printQueueData.print_jobs || []);
       setPendingShipments(pendingShipmentsData);
 
     } catch (err: any) {
