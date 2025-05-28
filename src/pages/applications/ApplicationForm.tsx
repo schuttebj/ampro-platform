@@ -27,12 +27,18 @@ import api from '../../api/api';
 interface ApplicationFormData {
   citizen_id: number;
   applied_category: string;
+  application_type: string;
+  previous_license_id?: number | null;
+  location_id?: number | null;
   status: string;
   application_date: string;
   notes?: string;
   documents_verified?: boolean | null;
   medical_verified?: boolean | null;
   payment_verified?: boolean | null;
+  payment_amount?: number | null;
+  payment_reference?: string | null;
+  collection_point?: string | null;
   review_notes?: string | null;
 }
 
@@ -44,6 +50,25 @@ interface Citizen {
   last_name: string;
   full_name?: string; // This will be computed
 }
+
+// Define the location interface for the dropdown
+interface Location {
+  id: number;
+  name: string;
+  code: string;
+  city: string;
+  is_active: boolean;
+  accepts_applications: boolean;
+}
+
+// Application type options
+const applicationTypes = [
+  { value: 'new', label: 'New License' },
+  { value: 'renewal', label: 'License Renewal' },
+  { value: 'replacement', label: 'Replacement (Lost/Damaged)' },
+  { value: 'upgrade', label: 'Category Upgrade' },
+  { value: 'conversion', label: 'Foreign License Conversion' }
+];
 
 // License category options
 const licenseCategories = [
@@ -69,12 +94,18 @@ const schema = yup.object({
     .required('Citizen is required')
     .test('is-valid-citizen', 'Please select a valid citizen', (value) => value > 0),
   applied_category: yup.string().required('License category is required'),
+  application_type: yup.string().required('Application type is required'),
+  previous_license_id: yup.number().nullable(),
+  location_id: yup.number().nullable(),
   status: yup.string().required('Status is required'),
   application_date: yup.string().required('Application date is required'),
   notes: yup.string(),
   documents_verified: yup.boolean().nullable(),
   medical_verified: yup.boolean().nullable(),
   payment_verified: yup.boolean().nullable(),
+  payment_amount: yup.number().nullable(),
+  payment_reference: yup.string().nullable(),
+  collection_point: yup.string().nullable(),
   review_notes: yup.string().nullable()
 }).required();
 
@@ -82,12 +113,18 @@ const schema = yup.object({
 const defaultValues: ApplicationFormData = {
   citizen_id: 0,
   applied_category: '',
+  application_type: 'new',
+  previous_license_id: null,
+  location_id: null,
   status: 'submitted',
   application_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
   notes: '',
   documents_verified: null,
   medical_verified: null,
   payment_verified: null,
+  payment_amount: null,
+  payment_reference: null,
+  collection_point: null,
   review_notes: null
 };
 
@@ -98,7 +135,9 @@ const ApplicationForm: React.FC = () => {
   const [initialLoading, setInitialLoading] = useState(!!id);
   const [error, setError] = useState('');
   const [citizens, setCitizens] = useState<Citizen[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [selectedCitizen, setSelectedCitizen] = useState<Citizen | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const isEditMode = !!id;
 
   const { 
@@ -131,6 +170,20 @@ const ApplicationForm: React.FC = () => {
     fetchCitizens();
   }, []);
 
+  // Fetch locations that accept applications
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await api.get('/locations/accepting-applications');
+        setLocations(response.data);
+      } catch (error: any) {
+        console.error('Error fetching locations:', error);
+        // Don't set error as this is not critical
+      }
+    };
+    fetchLocations();
+  }, []);
+
   // Load application data if in edit mode
   useEffect(() => {
     const fetchApplication = async () => {
@@ -153,9 +206,17 @@ const ApplicationForm: React.FC = () => {
         
         // Find the selected citizen for the Autocomplete
         if (applicationData.citizen_id && citizens.length > 0) {
-          const citizen = citizens.find((c) => c.id === applicationData.citizen_id);
+          const citizen = citizens.find((c: any) => c.id === applicationData.citizen_id);
           if (citizen) {
             setSelectedCitizen(citizen);
+          }
+        }
+
+        // Find the selected location for the dropdown
+        if (applicationData.location_id && locations.length > 0) {
+          const location = locations.find((l: any) => l.id === applicationData.location_id);
+          if (location) {
+            setSelectedLocation(location);
           }
         }
       } catch (error: any) {
@@ -169,7 +230,7 @@ const ApplicationForm: React.FC = () => {
     if (isEditMode && id) {
       fetchApplication();
     }
-  }, [id, reset, isEditMode, citizens]);
+  }, [id, reset, isEditMode, citizens, locations]);
 
   const onSubmit = async (data: ApplicationFormData) => {
     try {
@@ -193,12 +254,18 @@ const ApplicationForm: React.FC = () => {
       const submissionData = {
         citizen_id: data.citizen_id,
         applied_category: data.applied_category,
+        application_type: data.application_type,
+        previous_license_id: data.previous_license_id,
+        location_id: data.location_id,
         status: data.status,
         application_date: isoDate,
         notes: data.notes || '',
         documents_verified: data.documents_verified,
         medical_verified: data.medical_verified,
         payment_verified: data.payment_verified,
+        payment_amount: data.payment_amount,
+        payment_reference: data.payment_reference,
+        collection_point: data.collection_point,
         review_notes: data.review_notes
       };
       
@@ -361,6 +428,30 @@ const ApplicationForm: React.FC = () => {
             </Grid>
             <Grid item xs={12} md={6}>
               <Controller
+                name="application_type"
+                control={control}
+                render={({ field }: any) => (
+                  <FormControl fullWidth error={!!errors.application_type}>
+                    <InputLabel id="application-type-label">Application Type *</InputLabel>
+                    <Select
+                      {...field}
+                      labelId="application-type-label"
+                      label="Application Type *"
+                      disabled={loading}
+                    >
+                      {applicationTypes.map((type) => (
+                        <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                      ))}
+                    </Select>
+                    {errors.application_type && (
+                      <FormHelperText>{errors.application_type.message}</FormHelperText>
+                    )}
+                  </FormControl>
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Controller
                 name="status"
                 control={control}
                 render={({ field }) => (
@@ -512,6 +603,37 @@ const ApplicationForm: React.FC = () => {
                     rows={2}
                     disabled={loading}
                   />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="location_id"
+                control={control}
+                render={({ field }: any) => (
+                  <FormControl fullWidth>
+                    <InputLabel id="location-label">Collection Point</InputLabel>
+                    <Select
+                      {...field}
+                      labelId="location-label"
+                      label="Collection Point"
+                      disabled={loading}
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value === '' ? null : parseInt(value));
+                        const location = locations.find(l => l.id === parseInt(value));
+                        setSelectedLocation(location || null);
+                      }}
+                    >
+                      <MenuItem value="">Select Location</MenuItem>
+                      {locations.map((location) => (
+                        <MenuItem key={location.id} value={location.id}>
+                          {location.name} ({location.code}) - {location.city}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 )}
               />
             </Grid>

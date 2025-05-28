@@ -295,15 +295,25 @@ const CitizenDetails: React.FC = () => {
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h5" component="h2">
-            Licenses
+            Licenses & Applications
           </Typography>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={() => navigate(`/licenses/new?citizen=${id}`)}
-          >
-            Add New License
-          </Button>
+          <Box>
+            <Button 
+              variant="contained" 
+              color="secondary" 
+              onClick={() => navigate(`/applications/new?citizen=${id}`)}
+              sx={{ mr: 2 }}
+            >
+              Start New Application
+            </Button>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={() => navigate(`/licenses/new?citizen=${id}`)}
+            >
+              Add New License
+            </Button>
+          </Box>
         </Box>
         
         {licensesLoading ? (
