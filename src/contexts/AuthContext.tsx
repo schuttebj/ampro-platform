@@ -10,6 +10,7 @@ export interface User {
   full_name: string;
   role: string;
   is_active: boolean;
+  is_superuser: boolean;
 }
 
 // Define Auth Context interface
@@ -60,7 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: 'user@example.com',
             full_name: 'Authorized User',
             role: 'user',
-            is_active: true
+            is_active: true,
+            is_superuser: false
           });
         } else {
           const storedRefreshToken = localStorage.getItem('refreshToken');
@@ -153,7 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: '',
         full_name: username,
         role: 'user',
-        is_active: true
+        is_active: true,
+        is_superuser: false
       });
       
     } catch (error) {
@@ -216,7 +219,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: 'user@example.com',
           full_name: 'Authorized User',
           role: 'user',
-          is_active: true
+          is_active: true,
+          is_superuser: false
         });
       }
     } catch (error) {
