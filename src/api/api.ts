@@ -99,11 +99,15 @@ export const testApiConnection = async () => {
         console.log(`Testing URL: ${url}`);
         // Use GET for health checks, OPTIONS for login to check if it accepts POST
         const method = url.includes('/auth/login') ? 'OPTIONS' : 'GET';
+        
+        // Don't include credentials for diagnostic tests to avoid CORS issues
         const response = await fetch(url, { 
           method,
           mode: 'cors',
-          credentials: 'include'
+          // Do not include credentials for diagnostics
+          credentials: 'omit' 
         });
+        
         return { 
           url, 
           method,

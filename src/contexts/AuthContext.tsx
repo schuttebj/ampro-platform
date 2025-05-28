@@ -95,14 +95,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Using login URL:', apiUrl);
       
-      // Make the request with fetch instead of axios
+      // First check if we can connect with OPTIONS (preflight) request
+      try {
+        console.log('Testing OPTIONS request to:', apiUrl);
+        const optionsResponse = await fetch(apiUrl, {
+          method: 'OPTIONS',
+          mode: 'cors',
+          credentials: 'omit', // Don't include credentials for OPTIONS
+        });
+        
+        if (!optionsResponse.ok) {
+          console.warn('OPTIONS request failed with status:', optionsResponse.status);
+        } else {
+          console.log('OPTIONS request succeeded');
+        }
+      } catch (optionsError) {
+        console.warn('OPTIONS request failed:', optionsError);
+        // Continue anyway - the actual POST request might still work
+      }
+      
+      // Make the POST request for login
+      // Don't use credentials: 'include' if we're having CORS issues
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: formData.toString(),
-        credentials: 'include', // Include credentials (cookies, etc.)
+        credentials: 'omit', // Try without credentials to avoid CORS issues
       });
       
       // Check if the response is successful
@@ -171,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        withCredentials: true, // Important for CORS
+        withCredentials: false, // Don't use credentials for token refresh
       });
       
       // Extract token regardless of format
