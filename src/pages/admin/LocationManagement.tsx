@@ -292,6 +292,8 @@ const LocationManagement: React.FC = () => {
         notes: formData.notes || null
       };
 
+      console.log('Sending payload:', JSON.stringify(payload, null, 2));
+
       if (editingLocation) {
         await api.put(`/locations/${editingLocation.id}`, payload);
         setSuccess('Location updated successfully');
@@ -304,6 +306,9 @@ const LocationManagement: React.FC = () => {
       fetchLocations();
     } catch (error: any) {
       console.error('Error saving location:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      
       if (error.response?.data?.detail) {
         if (Array.isArray(error.response.data.detail)) {
           const errorMessages = error.response.data.detail.map((err: any) => 
@@ -313,6 +318,9 @@ const LocationManagement: React.FC = () => {
         } else {
           setError(error.response.data.detail);
         }
+      } else if (error.response?.data) {
+        // Show the raw error data for debugging
+        setError(`API Error: ${JSON.stringify(error.response.data)}`);
       } else {
         setError('Failed to save location');
       }
