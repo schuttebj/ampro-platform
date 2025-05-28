@@ -38,7 +38,8 @@ import {
   WorkflowStatus,
   Printer,
   ISOComplianceInfo,
-  ISOValidationResult
+  ISOValidationResult,
+  ApplicationUpdateRequest
 } from '../types';
 
 // Authentication Services
@@ -282,7 +283,7 @@ export const applicationService = {
     return response.data;
   },
 
-  updateApplication: async (applicationId: number, applicationData: Partial<ApplicationFormData>): Promise<Application> => {
+  updateApplication: async (applicationId: number, applicationData: Partial<ApplicationUpdateRequest>): Promise<Application> => {
     const response = await api.put(`/applications/${applicationId}`, applicationData);
     return response.data;
   },

@@ -169,6 +169,23 @@ export interface ApplicationApprovalRequest {
   notes?: string;
 }
 
+export interface ApplicationUpdateRequest {
+  status?: 'SUBMITTED' | 'UNDER_REVIEW' | 'PENDING_DOCUMENTS' | 'PENDING_PAYMENT' | 
+          'APPROVED' | 'LICENSE_GENERATED' | 'QUEUED_FOR_PRINTING' | 'PRINTING' | 
+          'PRINTED' | 'SHIPPED' | 'READY_FOR_COLLECTION' | 'COMPLETED' | 
+          'REJECTED' | 'CANCELLED';
+  review_notes?: string;
+  reviewed_by?: number;
+  review_date?: string;
+  documents_verified?: boolean;
+  medical_verified?: boolean;
+  payment_verified?: boolean;
+  payment_amount?: number;
+  payment_reference?: string;
+  collection_point?: string;
+  preferred_collection_date?: string;
+}
+
 // Print Job Types
 export interface PrintJob {
   id: number;
