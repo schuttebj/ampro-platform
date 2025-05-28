@@ -23,7 +23,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) => {
   // Check role permissions if required
   if (requiredRole && user) {
     const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    if (!roles.includes(user.role)) {
+    
+    // Super users have access to all admin-only routes
+    if (roles.includes('admin') && user.is_superuser) {
+      // Allow access for super users
+    } else if (!roles.includes(user.role)) {
       return <Navigate to="/unauthorized" replace />;
     }
   }
