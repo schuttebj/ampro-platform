@@ -462,12 +462,12 @@ const PrinterDashboard: React.FC = () => {
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Quality Check</InputLabel>
               <Select
-                value={qualityCheckPassed}
-                onChange={(e) => setQualityCheckPassed(e.target.value as boolean)}
+                value={qualityCheckPassed.toString()}
+                onChange={(e) => setQualityCheckPassed(e.target.value === 'true')}
                 label="Quality Check"
               >
-                <MenuItem value={true}>Passed</MenuItem>
-                <MenuItem value={false}>Failed</MenuItem>
+                <MenuItem value="true">Passed</MenuItem>
+                <MenuItem value="false">Failed</MenuItem>
               </Select>
             </FormControl>
             
