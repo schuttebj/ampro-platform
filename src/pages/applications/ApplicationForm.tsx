@@ -14,6 +14,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  SelectChangeEvent,
   FormHelperText,
   Divider,
   CircularProgress,
@@ -619,7 +620,7 @@ const ApplicationForm: React.FC = () => {
                       label="Collection Point"
                       disabled={loading}
                       value={field.value || ''}
-                      onChange={(e) => {
+                      onChange={(e: SelectChangeEvent<string>) => {
                         const value = e.target.value;
                         field.onChange(value === '' ? null : parseInt(value));
                         const location = locations.find(l => l.id === parseInt(value));
