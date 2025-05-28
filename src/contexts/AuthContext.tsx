@@ -53,17 +53,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (storedAccessToken) {
           setAuthToken(storedAccessToken);
           
-          // Create a basic user if we can't fetch from API
-          // This enables authentication even if the API doesn't have an /auth/me endpoint
-          setUser({
-            id: 1,
-            username: 'user',
-            email: 'user@example.com',
-            full_name: 'Authorized User',
-            role: 'user',
-            is_active: true,
-            is_superuser: false
-          });
+          // Try to fetch the actual user data from the backend
+          try {
+            console.log('Fetching user data on init...');
+            const userResponse = await api.get('/users/me');
+            console.log('User data received on init:', userResponse.data);
+            setUser(userResponse.data);
+          } catch (userError) {
+            console.error('Failed to fetch user data on init:', userError);
+            // If user data fetch fails, try refresh token or create basic user
+            const storedRefreshToken = localStorage.getItem('refreshToken');
+            if (storedRefreshToken) {
+              await refreshToken();
+            } else {
+              // Create a basic user if we can't fetch from API
+              setUser({
+                id: 1,
+                username: 'user',
+                email: 'user@example.com',
+                full_name: 'Authorized User',
+                role: 'user',
+                is_active: true,
+                is_superuser: false
+              });
+            }
+          }
         } else {
           const storedRefreshToken = localStorage.getItem('refreshToken');
           if (storedRefreshToken) {
@@ -148,16 +162,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('accessToken', access_token);
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
-      // Create a basic user object
-      setUser({
-        id: 1,
-        username,
-        email: '',
-        full_name: username,
-        role: 'user',
-        is_active: true,
-        is_superuser: false
-      });
+      // Fetch the actual user data from the backend
+      try {
+        console.log('Fetching user data from backend...');
+        const userResponse = await api.get('/users/me');
+        console.log('User data received:', userResponse.data);
+        setUser(userResponse.data);
+      } catch (userError) {
+        console.error('Failed to fetch user data:', userError);
+        // Fallback to basic user object if user endpoint fails
+        setUser({
+          id: 1,
+          username,
+          email: '',
+          full_name: username,
+          role: 'user',
+          is_active: true,
+          is_superuser: false
+        });
+      }
       
     } catch (error) {
       console.error('Login failed:', error);
@@ -209,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Try to get user data if endpoint exists
       try {
-        const userResponse = await api.get('/auth/me');
+        const userResponse = await api.get('/users/me');
         setUser(userResponse.data);
       } catch (userError) {
         // Create basic user if endpoint doesn't exist
