@@ -142,17 +142,34 @@ const LicenseForm: React.FC = () => {
         setFetchingLicense(true);
         try {
           const response = await api.get(`/licenses/${id}`);
-          const licenseData = response.data;
+          console.log('License API response:', response.data);
           
-          // Format dates properly
-          licenseData.issue_date = licenseData.issue_date.split('T')[0];
-          licenseData.expiry_date = licenseData.expiry_date.split('T')[0];
+          // The API returns { license: {...}, citizen: {...} }
+          const { license: licenseData, citizen: citizenData } = response.data;
+          
+          if (!licenseData) {
+            throw new Error('License data not found in response');
+          }
+          
+          // Format dates properly with null checks
+          const processedLicenseData = {
+            ...licenseData,
+            issue_date: licenseData.issue_date ? licenseData.issue_date.split('T')[0] : '',
+            expiry_date: licenseData.expiry_date ? licenseData.expiry_date.split('T')[0] : '',
+          };
+          
+          console.log('Processed license data:', processedLicenseData);
           
           // Set form values
-          reset(licenseData);
+          reset(processedLicenseData);
           
-          // Fetch citizen details
-          if (licenseData.citizen_id) {
+          // Fetch citizen details if we have citizen data from the response
+          if (citizenData) {
+            console.log('Using citizen data from response:', citizenData);
+            setSelectedCitizen(citizenData);
+            setValue('citizen_id', citizenData.id);
+          } else if (licenseData.citizen_id) {
+            // Fallback: fetch citizen details separately if not included
             console.log(`Fetching citizen details for ID: ${licenseData.citizen_id}`);
             try {
               const citizenResponse = await api.get(`/citizens/${licenseData.citizen_id}`);
@@ -166,6 +183,7 @@ const LicenseForm: React.FC = () => {
           }
         } catch (error: any) {
           console.error('Error fetching license:', error);
+          console.error('Error details:', error.response?.data);
           setError(error.response?.data?.detail || 'Failed to load license data.');
         } finally {
           setFetchingLicense(false);
