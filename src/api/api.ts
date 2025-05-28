@@ -15,7 +15,13 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Allow cookies to be sent with requests (important for CORS)
 });
+
+// Function to directly get the full API URL for any endpoint
+export const getFullApiUrl = (endpoint: string): string => {
+  return `${API_URL}/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+};
 
 // Add authorization header if token exists
 const token = localStorage.getItem('accessToken');

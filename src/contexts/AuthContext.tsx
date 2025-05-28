@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import api, { createFormData } from '../api/api';
+import api, { createFormData, getFullApiUrl } from '../api/api';
 
 // Define User interface
 export interface User {
@@ -84,16 +84,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       console.log('Attempting login for user:', username);
-      console.log('API base URL:', api.defaults.baseURL);
       
       // Create form-urlencoded data for login
       const formData = createFormData({ username, password });
       
+      // Get the direct URL for the login endpoint
+      const loginUrl = getFullApiUrl('/auth/login');
+      console.log('Using login URL:', loginUrl);
+      
       // Set the correct content type for this request
-      const response = await axios.post(`${api.defaults.baseURL}/auth/login`, formData, {
+      const response = await axios.post(loginUrl, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
+        withCredentials: true, // Important for CORS
       });
       
       console.log('Login response:', response.data); // Debug response
@@ -156,10 +160,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const formData = createFormData({ refresh_token: storedRefreshToken });
       
-      const response = await axios.post(`${api.defaults.baseURL}/auth/token`, formData, {
+      // Get the direct URL for the token endpoint
+      const tokenUrl = getFullApiUrl('/auth/token');
+      console.log('Using token refresh URL:', tokenUrl);
+      
+      const response = await axios.post(tokenUrl, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
+        withCredentials: true, // Important for CORS
       });
       
       // Extract token regardless of format
