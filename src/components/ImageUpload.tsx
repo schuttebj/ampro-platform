@@ -15,6 +15,9 @@ import {
 } from '@mui/icons-material';
 import { fileService } from '../api/services';
 
+// Get API URL from environment or use default
+const API_URL = process.env.REACT_APP_API_URL || 'https://ampro-licence.onrender.com';
+
 interface ImageUploadProps {
   value?: string; // Current image URL
   onChange: (imageUrl: string | null) => void;
@@ -38,6 +41,24 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to convert relative API URLs to full URLs
+  const getFullImageUrl = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+    
+    // If it's already a full URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // If it's a relative API URL, convert to full URL
+    if (url.startsWith('/api/v1/')) {
+      return `${API_URL}${url}`;
+    }
+    
+    // For other relative URLs, assume they're from the API
+    return url.startsWith('/') ? `${API_URL}${url}` : url;
+  };
 
   const validateFile = (file: File): string | null => {
     // Check file type
@@ -150,7 +171,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         ) : value ? (
           <>
             <Avatar
-              src={value}
+              src={getFullImageUrl(value)}
               sx={{
                 width: width - 20,
                 height: height - 20,
