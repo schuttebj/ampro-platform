@@ -53,6 +53,7 @@ import {
 } from '../api/services';
 import {
   PrintJob,
+  PrintQueue,
   PrintJobStatistics,
   ShippingRecord,
   ShippingStatistics,
@@ -176,7 +177,7 @@ const WorkflowManager: React.FC = () => {
     
     try {
       await workflowService.assignPrintJob(assignDialog.printJobId, {
-        user_id: selectedUserId as number
+        assigned_to_user_id: selectedUserId as number
       });
       
       setSuccess('Print job assigned successfully');
@@ -197,7 +198,7 @@ const WorkflowManager: React.FC = () => {
     
     try {
       await workflowService.startPrintJob(printJobId, {
-        user_id: 1, // Current user ID - should be from auth context
+        started_at: new Date().toISOString(),
         printer_name: selectedPrinter
       });
       
@@ -233,7 +234,8 @@ const WorkflowManager: React.FC = () => {
   const handleCompletePrintJob = async (printJobId: number) => {
     try {
       await workflowService.completePrintJob(printJobId, {
-        user_id: 1, // Current user ID - should be from auth context
+        completed_at: new Date().toISOString(),
+        success: true,
         copies_printed: 1,
         notes: 'Completed successfully'
       });
