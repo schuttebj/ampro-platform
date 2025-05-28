@@ -226,12 +226,12 @@ export interface PrintQueue {
 }
 
 export interface PrintJobStatistics {
-  total_queued: number;
-  total_assigned: number;
-  total_printing: number;
-  total_completed: number;
-  total_failed: number;
-  total_cancelled: number;
+  queued: number;
+  assigned: number;
+  printing: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
   total: number;
 }
 
@@ -272,10 +272,10 @@ export interface ShippingAction {
 }
 
 export interface ShippingStatistics {
-  total_pending: number;
-  total_in_transit: number;
-  total_delivered: number;
-  total_failed: number;
+  pending: number;
+  in_transit: number;
+  delivered: number;
+  failed: number;
   total: number;
 }
 
