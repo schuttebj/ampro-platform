@@ -17,7 +17,15 @@ import {
   ExternalDriverData,
   ExternalInfringementData,
   PaginatedResponse,
-  DashboardStats
+  DashboardStats,
+  LicenseFiles,
+  LicenseFilesInfo,
+  LicenseGenerationResponse,
+  PhotoUpdateRequest,
+  PhotoUpdateResponse,
+  StorageStats,
+  StorageCleanupResponse,
+  LicenseFileType
 } from '../types';
 
 // Authentication Services
@@ -166,6 +174,41 @@ export const licenseService = {
   printLicense: async (licenseId: number): Promise<{ success: boolean; message: string }> => {
     const response = await api.post(`/licenses/${licenseId}/print`);
     return response.data;
+  },
+
+  // New File-based License Generation Methods
+  generateLicenseFiles: async (licenseId: number, forceRegenerate = false): Promise<LicenseGenerationResponse> => {
+    const response = await api.post(`/licenses/${licenseId}/generate`, {
+      force_regenerate: forceRegenerate
+    });
+    return response.data;
+  },
+
+  getLicenseFiles: async (licenseId: number): Promise<LicenseFilesInfo> => {
+    const response = await api.get(`/licenses/${licenseId}/files`);
+    return response.data;
+  },
+
+  downloadLicenseFile: async (licenseId: number, fileType: LicenseFileType): Promise<Blob> => {
+    const response = await api.get(`/licenses/${licenseId}/download/${fileType}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  updateLicensePhoto: async (licenseId: number, photoRequest: PhotoUpdateRequest): Promise<PhotoUpdateResponse> => {
+    const response = await api.post(`/licenses/${licenseId}/photo/update`, photoRequest);
+    return response.data;
+  },
+
+  getStorageStats: async (): Promise<StorageStats> => {
+    const response = await api.get('/licenses/storage/stats');
+    return response.data;
+  },
+
+  cleanupStorage: async (olderThanHours = 24): Promise<StorageCleanupResponse> => {
+    const response = await api.post(`/licenses/storage/cleanup?older_than_hours=${olderThanHours}`);
+    return response.data;
   }
 };
 
@@ -293,6 +336,29 @@ export const dashboardService = {
       pending_applications: applications.length || 0,
       transactions_today: transactions.total || 0 // This would need filtering by date
     };
+  }
+};
+
+// File Upload Services
+export const fileService = {
+  uploadImage: async (file: File, type: 'citizen_photo' | 'document' = 'citizen_photo'): Promise<{ file_url: string; file_path: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('file_type', type);
+    
+    const response = await api.post('/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  deleteFile: async (filePath: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete('/files/delete', {
+      data: { file_path: filePath }
+    });
+    return response.data;
   }
 };
 

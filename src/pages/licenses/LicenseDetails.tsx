@@ -27,6 +27,7 @@ import {
   ArrowBack as BackIcon
 } from '@mui/icons-material';
 import api from '../../api/api';
+import LicenseFileManager from '../../components/LicenseFileManager';
 
 // Define interfaces
 interface License {
@@ -361,6 +362,14 @@ const LicenseDetails: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
+        {/* License File Manager - Full Width */}
+        <Grid item xs={12}>
+          <LicenseFileManager 
+            licenseId={license.id} 
+            licenseNumber={license.license_number || 'N/A'} 
+          />
+        </Grid>
+
         <Grid item xs={12} md={8}>
           <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -517,6 +526,56 @@ const LicenseDetails: React.FC = () => {
             ) : (
               <Alert severity="warning">Citizen information not available</Alert>
             )}
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper elevation={2} sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
+              License Status Management
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+              {license.status === 'active' && (
+                <>
+                  <Button 
+                    variant="outlined"
+                    color="warning"
+                    startIcon={<SuspendIcon />}
+                    onClick={() => handleStatusChange('suspend')}
+                  >
+                    Suspend License
+                  </Button>
+                  <Button 
+                    variant="outlined"
+                    color="error"
+                    startIcon={<RevokeIcon />}
+                    onClick={() => handleStatusChange('revoke')}
+                  >
+                    Revoke License
+                  </Button>
+                </>
+              )}
+              {license.status === 'suspended' && (
+                <Button 
+                  variant="outlined"
+                  color="success"
+                  startIcon={<BackIcon />}
+                  onClick={() => handleStatusChange('reactivate')}
+                >
+                  Reactivate License
+                </Button>
+              )}
+              {(license.status === 'active' || license.status === 'expired') && (
+                <Button 
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<RenewIcon />}
+                  onClick={() => handleStatusChange('renew')}
+                >
+                  Renew License
+                </Button>
+              )}
+            </Box>
           </Paper>
         </Grid>
       </Grid>

@@ -267,4 +267,84 @@ export interface PendingTask {
   priority: 'High' | 'Medium' | 'Low';
   due_date?: string;
   assigned_to?: string;
-} 
+}
+
+// New File-based License System Types
+export interface LicenseFiles {
+  front_image_path?: string;
+  back_image_path?: string;
+  front_pdf_path?: string;
+  back_pdf_path?: string;
+  combined_pdf_path?: string;
+  front_image_url?: string;
+  back_image_url?: string;
+  front_pdf_url?: string;
+  back_pdf_url?: string;
+  combined_pdf_url?: string;
+  processed_photo_url?: string;
+  generation_timestamp?: string;
+  generator_version?: string;
+}
+
+export interface FileInfo {
+  path: string;
+  url: string;
+  size_bytes: number;
+  exists: boolean;
+}
+
+export interface LicenseFilesInfo {
+  license_id: number;
+  license_number: string;
+  last_generated?: string;
+  generation_version?: string;
+  files: {
+    front_image_path?: FileInfo;
+    back_image_path?: FileInfo;
+    front_pdf_path?: FileInfo;
+    back_pdf_path?: FileInfo;
+    combined_pdf_path?: FileInfo;
+  };
+}
+
+export interface LicenseGenerationResponse {
+  message: string;
+  license_id: number;
+  license_number: string;
+  files: LicenseFiles;
+  cached: boolean;
+}
+
+export interface PhotoUpdateRequest {
+  photo_url: string;
+}
+
+export interface PhotoUpdateResponse {
+  message: string;
+  license_id: number;
+  citizen_id: number;
+  original_photo_path: string;
+  processed_photo_path: string;
+  regeneration_required: boolean;
+}
+
+export interface StorageStats {
+  total_files: number;
+  total_size_bytes: number;
+  license_files: number;
+  photo_files: number;
+  temp_files: number;
+  total_size_formatted: string;
+  license_size_formatted: string;
+  photo_size_formatted: string;
+  temp_size_formatted: string;
+}
+
+export interface StorageCleanupResponse {
+  message: string;
+  files_removed: number;
+  space_freed_bytes: number;
+  space_freed_formatted: string;
+}
+
+export type LicenseFileType = 'front_image' | 'back_image' | 'front_pdf' | 'back_pdf' | 'combined_pdf'; 

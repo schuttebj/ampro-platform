@@ -13,10 +13,11 @@ import {
   Delete as DeleteIcon,
   PhotoCamera as CameraIcon
 } from '@mui/icons-material';
+import { fileService } from '../api/services';
 
 interface ImageUploadProps {
-  value?: string; // Current image URL or base64
-  onChange: (imageData: string | null) => void;
+  value?: string; // Current image URL
+  onChange: (imageUrl: string | null) => void;
   label?: string;
   maxSize?: number; // Max file size in MB
   acceptedFormats?: string[];
@@ -64,20 +65,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     setUploading(true);
 
     try {
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        onChange(result);
-        setUploading(false);
-      };
-      reader.onerror = () => {
-        setError('Failed to read file');
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      setError('Failed to process image');
+      // Upload file to backend
+      const response = await fileService.uploadImage(file, 'citizen_photo');
+      onChange(response.file_url);
+      setUploading(false);
+    } catch (err: any) {
+      console.error('Error uploading file:', err);
+      setError(err.response?.data?.detail || 'Failed to upload image');
       setUploading(false);
     }
   };
@@ -147,7 +141,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         onClick={handleClick}
       >
         {uploading ? (
-          <CircularProgress size={40} />
+          <Box sx={{ textAlign: 'center', p: 2 }}>
+            <CircularProgress size={40} />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Uploading...
+            </Typography>
+          </Box>
         ) : value ? (
           <>
             <Avatar
@@ -209,6 +208,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
       <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
         Accepted formats: JPG, PNG • Max size: {maxSize}MB
+        <br />
+        Images will be automatically processed and optimized for license cards
       </Typography>
     </Box>
   );
