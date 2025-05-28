@@ -104,6 +104,13 @@ const LicenseForm: React.FC = () => {
   const watchCategory = watch('category');
   const watchIssueDate = watch('issue_date');
   
+  // Generate license number on mount if creating new license
+  useEffect(() => {
+    if (!isEditMode && !watch('license_number')) {
+      generateLicenseNumber();
+    }
+  }, [isEditMode]);
+  
   // Set expiry date based on license class and issue date
   useEffect(() => {
     if (watchIssueDate) {
@@ -172,14 +179,14 @@ const LicenseForm: React.FC = () => {
   // Load citizens for autocomplete
   useEffect(() => {
     const fetchCitizens = async () => {
-      if (!searchTerm || searchTerm.length < 3) return;
+      if (!searchTerm || searchTerm.length < 2) return; // Reduced from 3 to 2 characters
       
       try {
         // Search citizens by name or ID number
         const params: Record<string, any> = {};
         
-        // If search term is numeric, search by ID
-        if (/^\d+$/.test(searchTerm)) {
+        // If search term is numeric and long enough, search by ID
+        if (/^\d{6,}/.test(searchTerm)) { // At least 6 digits for ID search
           params.id_number = searchTerm;
         } else {
           // Otherwise search by name
@@ -190,10 +197,13 @@ const LicenseForm: React.FC = () => {
         setCitizens(response.data);
       } catch (error: any) {
         console.error('Error searching citizens:', error);
+        // Don't show error to user, just log it
       }
     };
     
-    fetchCitizens();
+    // Debounce the search
+    const timeoutId = setTimeout(fetchCitizens, 300);
+    return () => clearTimeout(timeoutId);
   }, [searchTerm]);
   
   // Handle citizen selection
@@ -253,9 +263,15 @@ const LicenseForm: React.FC = () => {
     
     // Ensure license number is provided
     if (!data.license_number || data.license_number.trim() === '') {
-      setError('License number is required. Please provide a license number or generate one.');
-      setLoading(false);
-      return;
+      // Auto-generate if not provided
+      await generateLicenseNumber();
+      const newLicenseNumber = watch('license_number');
+      if (!newLicenseNumber) {
+        setError('Failed to generate license number. Please try again.');
+        setLoading(false);
+        return;
+      }
+      data.license_number = newLicenseNumber;
     }
     
     // Double check valid citizen

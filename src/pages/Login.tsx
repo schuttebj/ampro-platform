@@ -12,7 +12,8 @@ import {
   Alert,
   CircularProgress,
   Collapse,
-  IconButton
+  IconButton,
+  Link
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 
@@ -52,7 +53,13 @@ const Login: React.FC = () => {
       navigate(from, { replace: true });
     } catch (err: any) {
       console.error('Login error details:', err);
-      setError(err.message || 'Login failed. Please check your credentials and try again.');
+      
+      // Special handling for 405 Method Not Allowed errors
+      if (err.message && err.message.includes('405')) {
+        setError('Login failed: The API endpoint does not accept POST requests. This may be a server configuration issue.');
+      } else {
+        setError(err.message || 'Login failed. Please check your credentials and try again.');
+      }
     }
   };
   
@@ -140,6 +147,16 @@ const Login: React.FC = () => {
                 <Typography variant="body2" component="pre" sx={{ overflow: 'auto', maxHeight: 200 }}>
                   {diagnosticInfo ? JSON.stringify(diagnosticInfo, null, 2) : 'No diagnostic data available'}
                 </Typography>
+                
+                {/* Help text for 405 errors */}
+                {diagnosticInfo && JSON.stringify(diagnosticInfo).includes('405') && (
+                  <Alert severity="warning" sx={{ mt: 2 }}>
+                    <Typography variant="body2">
+                      405 Method Not Allowed detected: The API endpoint doesn't support the request method.
+                      This is likely a server-side configuration issue that needs to be fixed.
+                    </Typography>
+                  </Alert>
+                )}
               </Box>
             </Collapse>
           </Box>
