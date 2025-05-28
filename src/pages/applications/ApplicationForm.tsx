@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import api from '../../api/api';
+import { debounce } from 'lodash';
 
 // Define the application form data interface
 interface ApplicationFormData {
@@ -172,49 +173,51 @@ const ApplicationForm: React.FC = () => {
     fetchCitizens();
   }, []);
 
-  // Search citizens function
-  const searchCitizens = async (searchTerm: string) => {
-    if (!searchTerm || searchTerm.length < 2) {
-      return;
-    }
-    
-    try {
-      let response;
-      
-      // Check if search term looks like an ID number
-      if (/^\d+$/.test(searchTerm)) {
-        response = await api.get('/citizens/search', {
-          params: { id_number: searchTerm, limit: 20 }
-        });
-      } else {
-        // Split search term for name search
-        const nameParts = searchTerm.trim().split(' ');
-        const searchParams: any = { limit: 20 };
-        
-        if (nameParts.length >= 2) {
-          searchParams.first_name = nameParts[0];
-          searchParams.last_name = nameParts.slice(1).join(' ');
-        } else {
-          // Search both first and last name with the same term
-          searchParams.first_name = searchTerm;
-          searchParams.last_name = searchTerm;
-        }
-        
-        response = await api.get('/citizens/search', { params: searchParams });
+  // Search citizens function with debouncing
+  const searchCitizens = useCallback(
+    debounce(async (searchTerm: string) => {
+      if (!searchTerm || searchTerm.length < 2) {
+        return;
       }
       
-      // Add full name property to each citizen for display in dropdown
-      const citizensWithFullName = response.data.map((citizen: Citizen) => ({
-        ...citizen,
-        full_name: `${citizen.first_name} ${citizen.last_name} (ID: ${citizen.id_number})`
-      }));
-      
-      setCitizens(citizensWithFullName);
-    } catch (error: any) {
-      console.error('Error searching citizens:', error);
-      // Don't show error for search - just keep existing results
-    }
-  };
+      try {
+        let response;
+        
+        // Check if search term looks like an ID number
+        if (/^\d+$/.test(searchTerm)) {
+          response = await api.get('/citizens/search', {
+            params: { id_number: searchTerm, limit: 20 }
+          });
+        } else {
+          // Split search term for name search
+          const nameParts = searchTerm.trim().split(' ');
+          const searchParams: any = { limit: 20 };
+          
+          if (nameParts.length >= 2) {
+            searchParams.first_name = nameParts[0];
+            searchParams.last_name = nameParts.slice(1).join(' ');
+          } else {
+            // Search only first name for single terms
+            searchParams.first_name = searchTerm;
+          }
+          
+          response = await api.get('/citizens/search', { params: searchParams });
+        }
+        
+        // Add full name property to each citizen for display in dropdown
+        const citizensWithFullName = response.data.map((citizen: Citizen) => ({
+          ...citizen,
+          full_name: `${citizen.first_name} ${citizen.last_name} (ID: ${citizen.id_number})`
+        }));
+        
+        setCitizens(citizensWithFullName);
+      } catch (error: any) {
+        console.error('Error searching citizens:', error);
+        // Don't show error for search - just keep existing results
+      }
+    }, 300), // 300ms debounce
+    []
+  );
 
   // Fetch locations that accept applications
   useEffect(() => {
