@@ -25,7 +25,20 @@ import {
   PhotoUpdateResponse,
   StorageStats,
   StorageCleanupResponse,
-  LicenseFileType
+  LicenseFileType,
+  PrintJob,
+  PrintJobAssignment,
+  PrintJobStart,
+  PrintJobComplete,
+  PrintQueue,
+  PrintJobStatistics,
+  ShippingRecord,
+  ShippingAction,
+  ShippingStatistics,
+  WorkflowStatus,
+  Printer,
+  ISOComplianceInfo,
+  ISOValidationResult
 } from '../types';
 
 // Authentication Services
@@ -86,37 +99,79 @@ export const userService = {
 
 // Citizen Services
 export const citizenService = {
-  getCitizens: async (params?: CitizenSearchParams): Promise<PaginatedResponse<Citizen>> => {
+  getAll: async (params?: { skip?: number; limit?: number }): Promise<Citizen[]> => {
     const response = await api.get('/citizens/', { params });
     return response.data;
   },
 
-  createCitizen: async (citizenData: CitizenFormData): Promise<Citizen> => {
-    const response = await api.post('/citizens/', citizenData);
+  getById: async (id: number): Promise<Citizen> => {
+    const response = await api.get(`/citizens/${id}`);
     return response.data;
   },
 
-  searchCitizens: async (params: CitizenSearchParams): Promise<Citizen[]> => {
+  create: async (data: Partial<Citizen>): Promise<Citizen> => {
+    const response = await api.post('/citizens/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<Citizen>): Promise<Citizen> => {
+    const response = await api.put(`/citizens/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<Citizen> => {
+    const response = await api.delete(`/citizens/${id}`);
+    return response.data;
+  },
+
+  search: async (params: {
+    id_number?: string;
+    first_name?: string;
+    last_name?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<Citizen[]> => {
     const response = await api.get('/citizens/search', { params });
     return response.data;
   },
 
-  getCitizen: async (citizenId: number): Promise<Citizen> => {
-    const response = await api.get(`/citizens/${citizenId}`);
+  getLicenses: async (id: number): Promise<{ citizen: Citizen; licenses: License[] }> => {
+    const response = await api.get(`/citizens/${id}/licenses`);
     return response.data;
   },
 
-  updateCitizen: async (citizenId: number, citizenData: Partial<CitizenFormData>): Promise<Citizen> => {
-    const response = await api.put(`/citizens/${citizenId}`, citizenData);
+  // Photo management endpoints
+  updatePhoto: async (id: number, photoUrl: string): Promise<{ 
+    message: string; 
+    citizen_id: number; 
+    original_photo_path: string; 
+    processed_photo_path: string; 
+    photo_url: string; 
+  }> => {
+    const response = await api.post(`/citizens/${id}/photo/update`, null, {
+      params: { photo_url: photoUrl }
+    });
     return response.data;
   },
 
-  deleteCitizen: async (citizenId: number): Promise<void> => {
-    await api.delete(`/citizens/${citizenId}`);
+  deletePhoto: async (id: number): Promise<{ message: string; citizen_id: string }> => {
+    const response = await api.delete(`/citizens/${id}/photo`);
+    return response.data;
   },
 
-  getCitizenLicenses: async (citizenId: number): Promise<License[]> => {
-    const response = await api.get(`/citizens/${citizenId}/licenses`);
+  getPhotoStatus: async (id: number): Promise<{
+    citizen_id: number;
+    has_photo_url: boolean;
+    photo_url?: string;
+    stored_photo_path?: string;
+    processed_photo_path?: string;
+    original_file_exists: boolean;
+    processed_file_exists: boolean;
+    photo_uploaded_at?: string;
+    photo_processed_at?: string;
+    needs_processing: boolean;
+  }> => {
+    const response = await api.get(`/citizens/${id}/photo/status`);
     return response.data;
   }
 };
@@ -232,17 +287,173 @@ export const applicationService = {
     return response.data;
   },
 
-  approveApplication: async (applicationId: number, approvalData: ApplicationApprovalRequest): Promise<License> => {
-    const response = await api.post(`/applications/${applicationId}/approve`, approvalData);
-    return response.data;
-  },
-
   deleteApplication: async (applicationId: number): Promise<void> => {
     await api.delete(`/applications/${applicationId}`);
   },
 
   getCitizenApplications: async (citizenId: number): Promise<Application[]> => {
     const response = await api.get(`/applications/citizen/${citizenId}`);
+    return response.data;
+  }
+};
+
+// Enhanced Workflow Services
+export const workflowService = {
+  // Application Workflow
+  approveApplication: async (applicationId: number, approvalData: ApplicationApprovalRequest): Promise<any> => {
+    const response = await api.post(`/workflow/applications/${applicationId}/approve`, approvalData);
+    return response.data;
+  },
+
+  // Print Job Management
+  getPrintQueue: async (skip = 0, limit = 100): Promise<PrintQueue> => {
+    const response = await api.get('/workflow/print-queue', {
+      params: { skip, limit }
+    });
+    return response.data;
+  },
+
+  assignPrintJob: async (printJobId: number, assignment: PrintJobAssignment): Promise<PrintJob> => {
+    const response = await api.post(`/workflow/print-jobs/${printJobId}/assign`, assignment);
+    return response.data;
+  },
+
+  startPrintJob: async (printJobId: number, startData: PrintJobStart): Promise<PrintJob> => {
+    const response = await api.post(`/workflow/print-jobs/${printJobId}/start`, startData);
+    return response.data;
+  },
+
+  completePrintJob: async (printJobId: number, completeData: PrintJobComplete): Promise<any> => {
+    const response = await api.post(`/workflow/print-jobs/${printJobId}/complete`, completeData);
+    return response.data;
+  },
+
+  printLicenseCard: async (printJobId: number, printerName?: string, copies = 1): Promise<any> => {
+    const response = await api.post(`/workflow/print-jobs/${printJobId}/print`, {
+      printer_name: printerName,
+      copies
+    });
+    return response.data;
+  },
+
+  // Shipping Management
+  getPendingShipments: async (skip = 0, limit = 100): Promise<ShippingRecord[]> => {
+    const response = await api.get('/workflow/shipping/pending', {
+      params: { skip, limit }
+    });
+    return response.data;
+  },
+
+  shipLicense: async (shippingId: number, shipData: ShippingAction): Promise<ShippingRecord> => {
+    const response = await api.post(`/workflow/shipping/${shippingId}/ship`, shipData);
+    return response.data;
+  },
+
+  deliverLicense: async (shippingId: number, deliverData: ShippingAction): Promise<any> => {
+    const response = await api.post(`/workflow/shipping/${shippingId}/deliver`, deliverData);
+    return response.data;
+  },
+
+  // Collection Management
+  getReadyForCollection: async (collectionPoint: string, skip = 0, limit = 100): Promise<any[]> => {
+    const response = await api.get(`/workflow/collection-points/${collectionPoint}/ready`, {
+      params: { skip, limit }
+    });
+    return response.data;
+  },
+
+  collectLicense: async (licenseId: number): Promise<any> => {
+    const response = await api.post(`/workflow/licenses/${licenseId}/collect`);
+    return response.data;
+  },
+
+  // Printer Management
+  getAvailablePrinters: async (): Promise<Printer[]> => {
+    const response = await api.get('/workflow/printers');
+    return response.data;
+  },
+
+  getDefaultPrinter: async (): Promise<{ default_printer: string; available: boolean }> => {
+    const response = await api.get('/workflow/printers/default');
+    return response.data;
+  },
+
+  // Statistics
+  getPrintJobStatistics: async (): Promise<PrintJobStatistics> => {
+    const response = await api.get('/workflow/statistics/print-jobs');
+    return response.data;
+  },
+
+  getShippingStatistics: async (): Promise<ShippingStatistics> => {
+    const response = await api.get('/workflow/statistics/shipping');
+    return response.data;
+  },
+
+  getWorkflowStatus: async (applicationId: number): Promise<WorkflowStatus> => {
+    const response = await api.get(`/workflow/workflow/status/${applicationId}`);
+    return response.data;
+  }
+};
+
+// Printer Services (for printer operators with PRINTER role)
+export const printerService = {
+  getDashboard: async (): Promise<any> => {
+    const response = await api.get('/printer/dashboard');
+    return response.data;
+  },
+
+  getPrintQueue: async (skip = 0, limit = 50): Promise<{ print_jobs: any[]; total_count: number; skip: number; limit: number }> => {
+    const response = await api.get('/printer/queue', {
+      params: { skip, limit }
+    });
+    return response.data;
+  },
+
+  getAssignedJobs: async (): Promise<any[]> => {
+    const response = await api.get('/printer/jobs/assigned');
+    return response.data;
+  },
+
+  startPrintJob: async (printJobId: number, startData: { printer_name: string }): Promise<any> => {
+    const response = await api.post(`/printer/jobs/${printJobId}/start`, startData);
+    return response.data;
+  },
+
+  completePrintJob: async (printJobId: number, completeData: { quality_check_passed: boolean; notes?: string }): Promise<any> => {
+    const response = await api.post(`/printer/jobs/${printJobId}/complete`, completeData);
+    return response.data;
+  },
+
+  getApplicationForPrintJob: async (printJobId: number): Promise<any> => {
+    const response = await api.get(`/printer/jobs/${printJobId}/application`);
+    return response.data;
+  },
+
+  getStatistics: async (): Promise<any> => {
+    const response = await api.get('/printer/statistics');
+    return response.data;
+  },
+
+  getAvailablePrinters: async (): Promise<{ name: string; status: string }[]> => {
+    const response = await api.get('/printer/printers');
+    return response.data;
+  }
+};
+
+// ISO Compliance Services
+export const isoComplianceService = {
+  getLicenseISOCompliance: async (licenseId: number): Promise<ISOComplianceInfo> => {
+    const response = await api.get(`/workflow/licenses/${licenseId}/iso-compliance`);
+    return response.data;
+  },
+
+  validateLicenseISOCompliance: async (licenseId: number): Promise<ISOValidationResult> => {
+    const response = await api.post(`/workflow/licenses/${licenseId}/validate-iso`);
+    return response.data;
+  },
+
+  regenerateISOComplianceData: async (licenseId: number): Promise<any> => {
+    const response = await api.post(`/workflow/licenses/${licenseId}/regenerate-iso`);
     return response.data;
   }
 };
@@ -317,14 +528,14 @@ export const dashboardService = {
     // This might need to be implemented as separate calls to different endpoints
     // or as a dedicated dashboard endpoint in the backend
     const [citizens, licenses, applications, transactions] = await Promise.all([
-      citizenService.getCitizens({ limit: 1 }),
+      citizenService.getAll({ limit: 1 }),
       licenseService.getLicenses(),
       applicationService.getPendingApplications(),
       transactionService.getTransactions()
     ]);
 
     return {
-      citizens_registered: citizens.total || 0,
+      citizens_registered: citizens.length || 0,
       licenses_issued: licenses.total || 0,
       pending_applications: applications.length || 0,
       transactions_today: transactions.total || 0 // This would need filtering by date

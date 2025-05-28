@@ -50,19 +50,58 @@ export interface CitizenSearchParams {
   offset?: number;
 }
 
-// License Types
+// Enhanced License Types with ISO Compliance
 export interface License {
   id: number;
   license_number: string;
   citizen_id: number;
   citizen?: Citizen;
-  license_category: 'A' | 'B' | 'C' | 'EB' | 'EC';
+  category: 'A' | 'B' | 'C' | 'D' | 'EB' | 'EC';
   issue_date: string;
   expiry_date: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'REVOKED' | 'PENDING';
+  status: 'PENDING_COLLECTION' | 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'REVOKED';
   restrictions?: string;
-  endorsements?: string;
-  photo_url?: string;
+  medical_conditions?: string;
+  
+  // ISO 18013 Compliance Fields
+  iso_country_code: string;
+  iso_issuing_authority: string;
+  iso_document_number?: string;
+  iso_version: string;
+  biometric_template?: string;
+  digital_signature?: string;
+  security_features?: string;
+  mrz_line1?: string;
+  mrz_line2?: string;
+  mrz_line3?: string;
+  chip_serial_number?: string;
+  chip_data_encrypted?: string;
+  international_validity: boolean;
+  vienna_convention_compliant: boolean;
+  
+  // File paths
+  file_url?: string;
+  barcode_data?: string;
+  front_image_path?: string;
+  back_image_path?: string;
+  front_pdf_path?: string;
+  back_pdf_path?: string;
+  combined_pdf_path?: string;
+  watermark_pdf_path?: string;
+  original_photo_path?: string;
+  processed_photo_path?: string;
+  photo_last_updated?: string;
+  
+  // Generation metadata
+  last_generated?: string;
+  generation_version: string;
+  
+  // Collection tracking
+  collection_point?: string;
+  collected_at?: string;
+  collected_by_user_id?: number;
+  collected_by?: User;
+  
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -70,51 +109,242 @@ export interface License {
 
 export interface LicenseCreateRequest {
   citizen_id: number;
-  license_category: string;
+  category: string;
   issue_date: string;
   expiry_date: string;
   restrictions?: string;
-  endorsements?: string;
+  medical_conditions?: string;
+  collection_point?: string;
 }
 
-// Application Types
+// Enhanced Application Types with New Statuses
 export interface Application {
   id: number;
   citizen_id: number;
   citizen?: Citizen;
-  license_category: 'A' | 'B' | 'C' | 'EB' | 'EC';
-  application_type: 'NEW' | 'RENEWAL' | 'REPLACEMENT' | 'UPGRADE';
-  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'DOCUMENTS_REQUESTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
-  submitted_date: string;
-  reviewed_date?: string;
-  approved_date?: string;
-  reviewer_id?: number;
+  applied_category: 'A' | 'B' | 'C' | 'D' | 'EB' | 'EC';
+  status: 'SUBMITTED' | 'UNDER_REVIEW' | 'PENDING_DOCUMENTS' | 'PENDING_PAYMENT' | 
+          'APPROVED' | 'LICENSE_GENERATED' | 'QUEUED_FOR_PRINTING' | 'PRINTING' | 
+          'PRINTED' | 'SHIPPED' | 'READY_FOR_COLLECTION' | 'COMPLETED' | 
+          'REJECTED' | 'CANCELLED';
+  
+  // Application details
+  application_date: string;
+  last_updated: string;
+  
+  // Review information
+  reviewed_by?: number;
   reviewer?: User;
-  notes?: string;
-  documents?: ApplicationDocument[];
-  is_active: boolean;
+  review_date?: string;
+  review_notes?: string;
+  
+  // Verification status
+  documents_verified: boolean;
+  medical_verified: boolean;
+  payment_verified: boolean;
+  payment_amount?: number;
+  payment_reference?: string;
+  
+  // Collection details
+  collection_point?: string;
+  preferred_collection_date?: string;
+  
+  // Approved license
+  approved_license_id?: number;
+  license?: License;
+  
   created_at: string;
   updated_at: string;
 }
 
-export interface ApplicationDocument {
-  id: number;
-  application_id: number;
-  document_type: string;
-  file_name: string;
-  file_url: string;
-  uploaded_at: string;
-}
-
 export interface ApplicationCreateRequest {
   citizen_id: number;
-  license_category: string;
-  application_type: string;
-  notes?: string;
+  applied_category: string;
+  collection_point?: string;
+  preferred_collection_date?: string;
 }
 
 export interface ApplicationApprovalRequest {
+  collection_point: string;
   notes?: string;
+}
+
+// Print Job Types
+export interface PrintJob {
+  id: number;
+  application_id: number;
+  license_id: number;
+  status: 'QUEUED' | 'ASSIGNED' | 'PRINTING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  priority: number;
+  front_pdf_path: string;
+  back_pdf_path: string;
+  combined_pdf_path?: string;
+  queued_at: string;
+  assigned_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  assigned_to_user_id?: number;
+  assigned_to?: User;
+  printed_by_user_id?: number;
+  printed_by?: User;
+  printer_name?: string;
+  copies_printed: number;
+  print_notes?: string;
+}
+
+export interface PrintJobCreate {
+  application_id: number;
+  license_id: number;
+  front_pdf_path: string;
+  back_pdf_path: string;
+  combined_pdf_path?: string;
+  priority?: number;
+}
+
+export interface PrintJobAssignment {
+  assigned_to_user_id: number;
+  printer_name?: string;
+}
+
+export interface PrintJobStart {
+  started_at: string;
+  printer_name?: string;
+}
+
+export interface PrintJobComplete {
+  completed_at: string;
+  success: boolean;
+  copies_printed?: number;
+  notes?: string;
+}
+
+export interface PrintQueue {
+  jobs: PrintJob[];
+  total_count: number;
+  queued_count: number;
+  assigned_count: number;
+}
+
+export interface PrintJobStatistics {
+  total_queued: number;
+  total_assigned: number;
+  total_printing: number;
+  total_completed: number;
+  total_failed: number;
+  total_cancelled: number;
+  total: number;
+}
+
+// Shipping Types
+export interface ShippingRecord {
+  id: number;
+  application_id: number;
+  license_id: number;
+  print_job_id: number;
+  status: 'PENDING' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
+  tracking_number?: string;
+  collection_point: string;
+  collection_address?: string;
+  shipped_at?: string;
+  delivered_at?: string;
+  shipped_by_user_id?: number;
+  shipped_by?: User;
+  received_by_user_id?: number;
+  received_by?: User;
+  shipping_method?: string;
+  shipping_notes?: string;
+}
+
+export interface ShippingRecordCreate {
+  application_id: number;
+  license_id: number;
+  print_job_id: number;
+  collection_point: string;
+  collection_address?: string;
+}
+
+export interface ShippingAction {
+  user_id: number;
+  tracking_number?: string;
+  shipping_method?: string;
+  notes?: string;
+}
+
+export interface ShippingStatistics {
+  total_pending: number;
+  total_in_transit: number;
+  total_delivered: number;
+  total_failed: number;
+  total: number;
+}
+
+// Workflow Status Types
+export interface WorkflowStatus {
+  application_id: number;
+  application_status: string;
+  last_updated: string;
+  collection_point?: string;
+  license_id?: number;
+  license_status?: string;
+  print_job_id?: number;
+  print_job_status?: string;
+  shipping_id?: number;
+  shipping_status?: string;
+}
+
+export interface CollectionPointSummary {
+  collection_point: string;
+  ready_count: number;
+  pending_count: number;
+}
+
+// Printer Types
+export interface Printer {
+  name: string;
+  driver: string;
+  port?: string;
+  status?: string;
+}
+
+// ISO Compliance Types
+export interface ISOComplianceInfo {
+  license_id: number;
+  license_number: string;
+  iso_compliant: boolean;
+  iso_version: string;
+  iso_country_code: string;
+  iso_issuing_authority: string;
+  iso_document_number?: string;
+  international_validity: boolean;
+  vienna_convention_compliant: boolean;
+  mrz_data: {
+    line1?: string;
+    line2?: string;
+    line3?: string;
+  };
+  security_features?: string;
+  chip_data: {
+    serial_number?: string;
+    has_encrypted_data: boolean;
+  };
+  biometric_data: {
+    has_template: boolean;
+  };
+  digital_signature: {
+    has_signature: boolean;
+  };
+}
+
+export interface ISOValidationResult {
+  license_id: number;
+  license_number: string;
+  validation_result: {
+    compliant: boolean;
+    issues: string[];
+    warnings: string[];
+    score: number;
+  };
+  timestamp: string;
 }
 
 // Transaction Types
@@ -212,7 +442,6 @@ export interface PaginatedResponse<T> {
   pages: number;
 }
 
-// Form Types
 export interface CitizenFormData {
   id_number: string;
   first_name: string;
@@ -231,21 +460,21 @@ export interface CitizenFormData {
 
 export interface LicenseFormData {
   citizen_id: number;
-  license_category: string;
+  category: string;
   issue_date: string;
   expiry_date: string;
   restrictions?: string;
-  endorsements?: string;
+  medical_conditions?: string;
+  collection_point?: string;
 }
 
 export interface ApplicationFormData {
   citizen_id: number;
-  license_category: string;
-  application_type: string;
-  notes?: string;
+  applied_category: string;
+  collection_point?: string;
+  preferred_collection_date?: string;
 }
 
-// Dashboard Types
 export interface DashboardStats {
   citizens_registered: number;
   licenses_issued: number;
@@ -269,18 +498,19 @@ export interface PendingTask {
   assigned_to?: string;
 }
 
-// New File-based License System Types
 export interface LicenseFiles {
   front_image_path?: string;
   back_image_path?: string;
   front_pdf_path?: string;
   back_pdf_path?: string;
   combined_pdf_path?: string;
+  watermark_pdf_path?: string;
   front_image_url?: string;
   back_image_url?: string;
   front_pdf_url?: string;
   back_pdf_url?: string;
   combined_pdf_url?: string;
+  watermark_pdf_url?: string;
   processed_photo_url?: string;
   generation_timestamp?: string;
   generator_version?: string;
@@ -304,6 +534,7 @@ export interface LicenseFilesInfo {
     front_pdf_path?: FileInfo;
     back_pdf_path?: FileInfo;
     combined_pdf_path?: FileInfo;
+    watermark_pdf_path?: FileInfo;
   };
 }
 
@@ -313,6 +544,7 @@ export interface LicenseGenerationResponse {
   license_number: string;
   files: LicenseFiles;
   cached: boolean;
+  iso_compliant?: boolean;
 }
 
 export interface PhotoUpdateRequest {
@@ -347,4 +579,4 @@ export interface StorageCleanupResponse {
   space_freed_formatted: string;
 }
 
-export type LicenseFileType = 'front_image' | 'back_image' | 'front_pdf' | 'back_pdf' | 'combined_pdf'; 
+export type LicenseFileType = 'front_image' | 'back_image' | 'front_pdf' | 'back_pdf' | 'combined_pdf' | 'watermark_pdf'; 

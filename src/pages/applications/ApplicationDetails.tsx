@@ -19,7 +19,11 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  TextField
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -27,39 +31,40 @@ import {
   Delete as DeleteIcon,
   CheckCircle as ApproveIcon,
   Cancel as RejectIcon,
-  Visibility as PreviewIcon
+  Visibility as PreviewIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material';
-import api from '../../api/api';
+import { applicationService, workflowService } from '../../api/services';
+import { Application } from '../../types';
 import LicensePreview from '../../components/LicensePreview';
-
-// Define the Application interface
-interface Application {
-  id: number;
-  license_type: string;
-  application_date: string;
-  status: 'pending' | 'approved' | 'rejected' | 'processing';
-  citizen_id: number;
-  citizen_name?: string;
-  license_class?: string;
-  notes?: string;
-  reviewer_id?: number;
-  reviewer_name?: string;
-  created_at: string;
-  updated_at: string;
-  // Additional fields that might be in the response
-  application_fee?: number;
-  payment_status?: string;
-  documents?: string[];
-  rejection_reason?: string;
-}
 
 // Status color mapping
 const statusColors: Record<string, "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning"> = {
-  pending: 'warning',
-  approved: 'success',
-  rejected: 'error',
-  processing: 'info',
+  SUBMITTED: 'info',
+  UNDER_REVIEW: 'warning',
+  PENDING_DOCUMENTS: 'warning',
+  PENDING_PAYMENT: 'warning',
+  APPROVED: 'success',
+  LICENSE_GENERATED: 'success',
+  QUEUED_FOR_PRINTING: 'info',
+  PRINTING: 'info',
+  PRINTED: 'success',
+  SHIPPED: 'success',
+  READY_FOR_COLLECTION: 'success',
+  COMPLETED: 'success',
+  REJECTED: 'error',
+  CANCELLED: 'error'
 };
+
+// Collection points - this should ideally come from a configuration or API
+const COLLECTION_POINTS = [
+  'Cape Town Central',
+  'Johannesburg Central', 
+  'Durban Central',
+  'Pretoria Central',
+  'Port Elizabeth Central',
+  'Bloemfontein Central'
+];
 
 const ApplicationDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -68,8 +73,11 @@ const ApplicationDetails: React.FC = () => {
   const [citizen, setCitizen] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [selectedCollectionPoint, setSelectedCollectionPoint] = useState('');
+  const [approvalNotes, setApprovalNotes] = useState('');
 
   useEffect(() => {
     const fetchApplicationDetails = async () => {
@@ -77,14 +85,15 @@ const ApplicationDetails: React.FC = () => {
         setLoading(true);
         setError('');
         
-        const response = await api.get(`/applications/${id}`);
-        setApplication(response.data);
+        const applicationData = await applicationService.getApplication(parseInt(id!));
+        setApplication(applicationData);
         
         // Fetch citizen data for license preview
-        if (response.data.citizen_id) {
+        if (applicationData.citizen_id) {
           try {
-            const citizenResponse = await api.get(`/citizens/${response.data.citizen_id}`);
-            setCitizen(citizenResponse.data);
+            const citizenData = await applicationService.getCitizenApplications(applicationData.citizen_id);
+            // This is a workaround - we should have a proper citizen service call
+            setCitizen(applicationData.citizen);
           } catch (citizenError) {
             console.error('Error fetching citizen details:', citizenError);
             // Don't set main error, just log it
@@ -109,13 +118,8 @@ const ApplicationDetails: React.FC = () => {
     if (window.confirm(`Are you sure you want to delete this application?`)) {
       try {
         setLoading(true);
-        const response = await api.delete(`/applications/${id}`);
-        
-        if (response.status === 204 || response.status === 200) {
-          navigate('/applications');
-        } else {
-          throw new Error('Failed to delete application');
-        }
+        await applicationService.deleteApplication(application.id);
+        navigate('/applications');
       } catch (error: any) {
         console.error('Error deleting application:', error);
         setError(error.response?.data?.detail || 'Failed to delete application.');
@@ -124,22 +128,35 @@ const ApplicationDetails: React.FC = () => {
     }
   };
 
+  const handleApproveDialogOpen = () => {
+    setApproveDialogOpen(true);
+  };
+
+  const handleApproveDialogClose = () => {
+    setApproveDialogOpen(false);
+    setSelectedCollectionPoint('');
+    setApprovalNotes('');
+  };
+
   const handleApprove = async () => {
-    if (!application) return;
+    if (!application || !selectedCollectionPoint) return;
     
-    if (window.confirm('Are you sure you want to approve this application? This will generate a license.')) {
-      try {
-        setLoading(true);
-        await api.post(`/applications/${id}/approve`);
-        // Reload the application details after approval
-        const response = await api.get(`/applications/${id}`);
-        setApplication(response.data);
-        setLoading(false);
-      } catch (error: any) {
-        console.error('Error approving application:', error);
-        setError(error.response?.data?.detail || 'Failed to approve application.');
-        setLoading(false);
-      }
+    try {
+      setLoading(true);
+      await workflowService.approveApplication(application.id, {
+        collection_point: selectedCollectionPoint,
+        notes: approvalNotes
+      });
+      
+      // Reload the application details after approval
+      const updatedApplication = await applicationService.getApplication(application.id);
+      setApplication(updatedApplication);
+      setApproveDialogOpen(false);
+      setLoading(false);
+    } catch (error: any) {
+      console.error('Error approving application:', error);
+      setError(error.response?.data?.detail || 'Failed to approve application.');
+      setLoading(false);
     }
   };
 
@@ -149,6 +166,7 @@ const ApplicationDetails: React.FC = () => {
 
   const handleRejectDialogClose = () => {
     setRejectDialogOpen(false);
+    setRejectionReason('');
   };
 
   const handleReject = async () => {
@@ -156,13 +174,15 @@ const ApplicationDetails: React.FC = () => {
     
     try {
       setLoading(true);
-      await api.post(`/applications/${id}/reject`, { 
-        rejection_reason: rejectionReason 
+      // Update application status to rejected
+      await applicationService.updateApplication(application.id, {
+        status: 'REJECTED',
+        review_notes: rejectionReason
       });
       
       // Reload the application details after rejection
-      const response = await api.get(`/applications/${id}`);
-      setApplication(response.data);
+      const updatedApplication = await applicationService.getApplication(application.id);
+      setApplication(updatedApplication);
       setRejectDialogOpen(false);
       setLoading(false);
     } catch (error: any) {
@@ -175,6 +195,17 @@ const ApplicationDetails: React.FC = () => {
   // Format date for display
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
+  };
+
+  const canApprove = () => {
+    return application?.status === 'UNDER_REVIEW' && 
+           application?.documents_verified && 
+           application?.medical_verified && 
+           application?.payment_verified;
+  };
+
+  const canReject = () => {
+    return application?.status === 'UNDER_REVIEW' || application?.status === 'SUBMITTED';
   };
 
   if (loading) {
@@ -204,9 +235,10 @@ const ApplicationDetails: React.FC = () => {
   if (!application) {
     return (
       <Box sx={{ maxWidth: '800px', mx: 'auto', mt: 3 }}>
-        <Alert severity="warning">Application not found.</Alert>
+        <Alert severity="warning">
+          Application not found.
+        </Alert>
         <Button
-          sx={{ mt: 2 }}
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/applications')}
         >
@@ -217,247 +249,356 @@ const ApplicationDetails: React.FC = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: '1000px', mx: 'auto' }}>
+    <Box sx={{ maxWidth: '1200px', mx: 'auto', mt: 3, p: 2 }}>
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/applications')}
-        >
-          Back to Applications
-        </Button>
-        <Box>
-          {application.status === 'pending' && (
-            <>
-              <IconButton 
-                color="success" 
-                onClick={handleApprove}
-                sx={{ mr: 1 }}
-                title="Approve application"
-              >
-                <ApproveIcon />
-              </IconButton>
-              <IconButton 
-                color="error" 
-                onClick={handleRejectDialogOpen}
-                sx={{ mr: 1 }}
-                title="Reject application"
-              >
-                <RejectIcon />
-              </IconButton>
-            </>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <IconButton onClick={() => navigate('/applications')}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4">
+            Application #{application.id}
+          </Typography>
+          <Chip 
+            label={application.status.replace('_', ' ')} 
+            color={statusColors[application.status] || 'default'}
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {canApprove() && (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<ApproveIcon />}
+              onClick={handleApproveDialogOpen}
+            >
+              Approve with ISO Compliance
+            </Button>
           )}
-          <IconButton 
-            color="primary" 
+          {canReject() && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<RejectIcon />}
+              onClick={handleRejectDialogOpen}
+            >
+              Reject
+            </Button>
+          )}
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
             onClick={() => navigate(`/applications/${id}/edit`)}
-            sx={{ mr: 1 }}
-            title="Edit application"
           >
-            <EditIcon />
-          </IconButton>
-          <IconButton 
-            color="error" 
+            Edit
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
             onClick={handleDelete}
-            title="Delete application"
           >
-            <DeleteIcon />
-          </IconButton>
+            Delete
+          </Button>
         </Box>
       </Box>
 
-      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            License Application #{application.id}
-          </Typography>
-          <Chip 
-            label={application.status} 
-            color={statusColors[application.status] || 'default'} 
-          />
-        </Box>
-        
-        <Divider sx={{ mb: 3 }} />
-        
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardHeader title="Application Information" />
-              <CardContent>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">License Type</Typography>
-                    <Typography variant="body1">{application.license_type}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">License Class</Typography>
-                    <Typography variant="body1">{application.license_class || 'N/A'}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Application Date</Typography>
-                    <Typography variant="body1">{formatDate(application.application_date)}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Application Fee</Typography>
-                    <Typography variant="body1">
-                      {application.application_fee ? `$${application.application_fee.toFixed(2)}` : 'N/A'}
+      <Grid container spacing={3}>
+        {/* Application Details */}
+        <Grid item xs={12} md={8}>
+          <Card>
+            <CardHeader 
+              title="Application Details"
+              action={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <SecurityIcon color="primary" />
+                  <Typography variant="caption">ISO 18013 Compliant</Typography>
+                </Box>
+              }
+            />
+            <CardContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Application ID
+                  </Typography>
+                  <Typography variant="body1">
+                    {application.id}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Applied Category
+                  </Typography>
+                  <Typography variant="body1">
+                    {application.applied_category}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Application Date
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatDate(application.application_date)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Last Updated
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatDate(application.last_updated)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Collection Point
+                  </Typography>
+                  <Typography variant="body1">
+                    {application.collection_point || 'Not assigned'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Preferred Collection Date
+                  </Typography>
+                  <Typography variant="body1">
+                    {application.preferred_collection_date ? formatDate(application.preferred_collection_date) : 'Not specified'}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Verification Status */}
+              <Typography variant="h6" gutterBottom>
+                Verification Status
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip 
+                      label="Documents" 
+                      color={application.documents_verified ? 'success' : 'warning'}
+                      size="small"
+                    />
+                    <Typography variant="body2">
+                      {application.documents_verified ? 'Verified' : 'Pending'}
                     </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Payment Status</Typography>
-                    <Typography variant="body1">{application.payment_status || 'N/A'}</Typography>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="text.secondary">Notes</Typography>
-                    <Typography variant="body1">{application.notes || 'No notes'}</Typography>
-                  </Grid>
-                  {application.status === 'rejected' && application.rejection_reason && (
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Rejection Reason</Typography>
-                      <Typography variant="body1" color="error">{application.rejection_reason}</Typography>
-                    </Grid>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip 
+                      label="Medical" 
+                      color={application.medical_verified ? 'success' : 'warning'}
+                      size="small"
+                    />
+                    <Typography variant="body2">
+                      {application.medical_verified ? 'Verified' : 'Pending'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip 
+                      label="Payment" 
+                      color={application.payment_verified ? 'success' : 'warning'}
+                      size="small"
+                    />
+                    <Typography variant="body2">
+                      {application.payment_verified ? 'Verified' : 'Pending'}
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              {application.payment_amount && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Payment Amount
+                  </Typography>
+                  <Typography variant="body1">
+                    R{(application.payment_amount / 100).toFixed(2)}
+                  </Typography>
+                  {application.payment_reference && (
+                    <>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+                        Payment Reference
+                      </Typography>
+                      <Typography variant="body1">
+                        {application.payment_reference}
+                      </Typography>
+                    </>
                   )}
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardHeader title="Applicant Information" />
-              <CardContent>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="text.secondary">Citizen Name</Typography>
-                    <Typography variant="body1">
-                      {application.citizen_name || 'Unknown'}
-                      <Button 
-                        size="small" 
-                        onClick={() => navigate(`/citizens/${application.citizen_id}`)}
-                        sx={{ ml: 1 }}
-                      >
-                        View Citizen
-                      </Button>
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="text.secondary">Citizen ID</Typography>
-                    <Typography variant="body1">{application.citizen_id}</Typography>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-            
-            {application.reviewer_id && (
-              <Card sx={{ mt: 2 }}>
-                <CardHeader title="Review Information" />
-                <CardContent>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Reviewer</Typography>
-                      <Typography variant="body1">{application.reviewer_name || `ID: ${application.reviewer_id}`}</Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Last Updated</Typography>
-                      <Typography variant="body1">{formatDate(application.updated_at)}</Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            )}
-          </Grid>
+                </Box>
+              )}
+
+              {application.review_notes && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Review Notes
+                  </Typography>
+                  <Typography variant="body1">
+                    {application.review_notes}
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
         </Grid>
 
-        {/* License Preview Section */}
-        {citizen && (application.status === 'pending' || application.status === 'approved') && (
-          <Grid container spacing={3} sx={{ mt: 2 }}>
-            <Grid item xs={12}>
-              <Card>
-                <CardHeader 
-                  title="License Preview" 
-                  avatar={<PreviewIcon />}
-                  subheader="Preview of the license that will be generated upon approval"
-                />
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                    <LicensePreview
-                      application={{
-                        id: application.id,
-                        license_type: application.license_type,
-                        license_class: application.license_class,
-                        status: application.status
-                      }}
-                      citizen={{
-                        id: citizen.id,
-                        id_number: citizen.id_number,
-                        first_name: citizen.first_name,
-                        last_name: citizen.last_name,
-                        date_of_birth: citizen.date_of_birth,
-                        gender: citizen.gender,
-                        address_line1: citizen.address_line1,
-                        city: citizen.city,
-                        state_province: citizen.state_province,
-                        photo_url: citizen.photo_url
-                      }}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        )}
+        {/* Citizen Information */}
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardHeader title="Citizen Information" />
+            <CardContent>
+              {application.citizen ? (
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Full Name
+                    </Typography>
+                    <Typography variant="body1">
+                      {application.citizen.first_name} {application.citizen.last_name}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      ID Number
+                    </Typography>
+                    <Typography variant="body1">
+                      {application.citizen.id_number}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Date of Birth
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDate(application.citizen.date_of_birth)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Contact
+                    </Typography>
+                    <Typography variant="body2">
+                      {application.citizen.phone_number}
+                    </Typography>
+                    <Typography variant="body2">
+                      {application.citizen.email}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Citizen information not available
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
 
-        <Box sx={{ mt: 3 }}>
-          <Button
-            variant="contained"
-            onClick={() => navigate(`/applications/${id}/edit`)}
-            sx={{ mr: 2 }}
-          >
-            Edit Application
-          </Button>
-          {application.status === 'pending' && (
-            <>
-              <Button
-                variant="contained"
-                color="success"
-                onClick={handleApprove}
-                sx={{ mr: 2 }}
-              >
-                Approve Application
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                onClick={handleRejectDialogOpen}
-              >
-                Reject Application
-              </Button>
-            </>
+          {/* License Preview */}
+          {application.approved_license_id && (
+            <Card sx={{ mt: 2 }}>
+              <CardHeader 
+                title="License Preview" 
+                action={
+                  <IconButton>
+                    <PreviewIcon />
+                  </IconButton>
+                }
+              />
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  License ID: {application.approved_license_id}
+                </Typography>
+                {/* Add license preview component here if needed */}
+              </CardContent>
+            </Card>
           )}
-        </Box>
-      </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Approval Dialog */}
+      <Dialog open={approveDialogOpen} onClose={handleApproveDialogClose} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SecurityIcon />
+            Approve Application with ISO 18013 Compliance
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            This will approve the application and generate an ISO 18013-1:2018 compliant driver's license.
+            Please select a collection point for the citizen.
+          </DialogContentText>
+          
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Collection Point *</InputLabel>
+            <Select
+              value={selectedCollectionPoint}
+              onChange={(e) => setSelectedCollectionPoint(e.target.value)}
+              required
+            >
+              {COLLECTION_POINTS.map((point) => (
+                <MenuItem key={point} value={point}>
+                  {point}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            label="Approval Notes"
+            multiline
+            rows={3}
+            value={approvalNotes}
+            onChange={(e) => setApprovalNotes(e.target.value)}
+            placeholder="Optional notes about the approval..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleApproveDialogClose}>Cancel</Button>
+          <Button 
+            onClick={handleApprove} 
+            variant="contained" 
+            color="success"
+            disabled={!selectedCollectionPoint}
+          >
+            Approve & Generate ISO License
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Rejection Dialog */}
-      <Dialog open={rejectDialogOpen} onClose={handleRejectDialogClose}>
+      <Dialog open={rejectDialogOpen} onClose={handleRejectDialogClose} maxWidth="sm" fullWidth>
         <DialogTitle>Reject Application</DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <DialogContentText sx={{ mb: 2 }}>
             Please provide a reason for rejecting this application.
           </DialogContentText>
           <TextField
-            autoFocus
-            margin="dense"
-            id="rejection-reason"
-            label="Rejection Reason"
-            type="text"
             fullWidth
+            label="Rejection Reason *"
             multiline
             rows={4}
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
+            required
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleRejectDialogClose}>Cancel</Button>
-          <Button onClick={handleReject} color="error">
-            Reject
+          <Button 
+            onClick={handleReject} 
+            variant="contained" 
+            color="error"
+            disabled={!rejectionReason.trim()}
+          >
+            Reject Application
           </Button>
         </DialogActions>
       </Dialog>

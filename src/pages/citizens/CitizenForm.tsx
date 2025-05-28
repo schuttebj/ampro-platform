@@ -95,86 +95,121 @@ const defaultValues: CitizenFormData = {
 const CitizenForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isEdit = Boolean(id);
+  
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(!!id);
-  const [error, setError] = useState('');
-  const isEditMode = !!id;
+  const [error, setError] = useState<string>('');
+  const [photoUploading, setPhotoUploading] = useState(false);
 
-  const { 
-    control, 
-    handleSubmit, 
+  const {
+    control,
+    handleSubmit,
     reset,
-    formState: { errors, isSubmitting }
+    setValue,
+    watch,
+    formState: { errors }
   } = useForm<CitizenFormData>({
     resolver: yupResolver(schema),
     defaultValues
   });
 
-  // Load citizen data if in edit mode
-  useEffect(() => {
-    const fetchCitizen = async () => {
-      try {
-        setInitialLoading(true);
-        setError('');
-        
-        const response = await api.get(`/citizens/${id}`);
-        // Format date to YYYY-MM-DD for the date input
-        const citizen = {
-          ...response.data,
-          date_of_birth: response.data.date_of_birth ? 
-            new Date(response.data.date_of_birth).toISOString().split('T')[0] : 
-            ''
-        };
-        reset(citizen);
-      } catch (error: any) {
-        console.error('Error fetching citizen:', error);
-        setError(error.response?.data?.detail || 'Failed to load citizen details.');
-      } finally {
-        setInitialLoading(false);
-      }
-    };
+  const watchedPhotoUrl = watch('photo_url');
 
-    if (isEditMode) {
-      fetchCitizen();
+  useEffect(() => {
+    if (isEdit && id) {
+      fetchCitizen(id);
     }
-  }, [id, reset, isEditMode]);
+  }, [id, isEdit]);
+
+  const fetchCitizen = async (citizenId: string) => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/citizens/${citizenId}`);
+      const citizen = response.data;
+      
+      // Reset form with citizen data
+      reset({
+        ...citizen,
+        date_of_birth: citizen.date_of_birth ? new Date(citizen.date_of_birth).toISOString().split('T')[0] : '',
+        is_active: citizen.is_active ?? true
+      });
+    } catch (err: any) {
+      console.error('Error fetching citizen:', err);
+      setError(err.response?.data?.detail || 'Failed to fetch citizen data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhotoChange = async (photoUrl: string | null) => {
+    if (!photoUrl) {
+      setValue('photo_url', '');
+      return;
+    }
+
+    // If editing an existing citizen, update photo immediately
+    if (isEdit && id) {
+      try {
+        setPhotoUploading(true);
+        await api.post(`/citizens/${id}/photo/update`, null, {
+          params: { photo_url: photoUrl }
+        });
+        setValue('photo_url', photoUrl);
+      } catch (err: any) {
+        console.error('Error updating photo:', err);
+        setError(err.response?.data?.detail || 'Failed to update photo');
+      } finally {
+        setPhotoUploading(false);
+      }
+    } else {
+      // For new citizens, just set the URL
+      setValue('photo_url', photoUrl);
+    }
+  };
 
   const onSubmit = async (data: CitizenFormData) => {
     try {
       setLoading(true);
       setError('');
-      
-      if (isEditMode) {
+
+      if (isEdit && id) {
+        // Update existing citizen
         await api.put(`/citizens/${id}`, data);
       } else {
-        await api.post('/citizens', data);
+        // Create new citizen
+        await api.post('/citizens/', data);
       }
-      
+
       navigate('/citizens');
-    } catch (error: any) {
-      console.error('Error saving citizen:', error);
-      setError(error.response?.data?.detail || 'Failed to save citizen.');
+    } catch (err: any) {
+      console.error('Error saving citizen:', err);
+      setError(err.response?.data?.detail || 'Failed to save citizen');
+    } finally {
       setLoading(false);
     }
   };
 
-  if (initialLoading) {
+  if (loading && isEdit) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: '1000px', mx: 'auto' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/citizens')}
+          variant="outlined"
         >
           Back to Citizens
         </Button>
+        <Typography variant="h4" component="h1">
+          {isEdit ? 'Edit Citizen' : 'Add New Citizen'}
+        </Typography>
       </Box>
 
       {error && (
@@ -183,68 +218,66 @@ const CitizenForm: React.FC = () => {
         </Alert>
       )}
 
-      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          {isEditMode ? 'Edit Citizen' : 'New Citizen'}
-        </Typography>
-        
-        <Divider sx={{ mb: 3 }} />
-        
-        <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-          <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+      <Paper sx={{ p: 4 }}>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Personal Information Section */}
+          <Typography variant="h6" gutterBottom>
             Personal Information
           </Typography>
           
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="id_number"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="ID Number *"
+                    label="ID Number"
                     fullWidth
+                    required
+                    disabled={loading || isEdit} // Disable editing ID number
                     error={!!errors.id_number}
                     helperText={errors.id_number?.message}
-                    disabled={loading}
                   />
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="first_name"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="First Name *"
+                    label="First Name"
                     fullWidth
+                    required
+                    disabled={loading}
                     error={!!errors.first_name}
                     helperText={errors.first_name?.message}
-                    disabled={loading}
                   />
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="last_name"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Last Name *"
+                    label="Last Name"
                     fullWidth
+                    required
+                    disabled={loading}
                     error={!!errors.last_name}
                     helperText={errors.last_name?.message}
-                    disabled={loading}
                   />
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="middle_name"
                 control={control}
@@ -253,8 +286,6 @@ const CitizenForm: React.FC = () => {
                     {...field}
                     label="Middle Name"
                     fullWidth
-                    error={!!errors.middle_name}
-                    helperText={errors.middle_name?.message}
                     disabled={loading}
                   />
                 )}
@@ -267,13 +298,14 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label="Date of Birth *"
+                    label="Date of Birth"
                     type="date"
                     fullWidth
+                    required
+                    disabled={loading}
                     InputLabelProps={{ shrink: true }}
                     error={!!errors.date_of_birth}
                     helperText={errors.date_of_birth?.message}
-                    disabled={loading}
                   />
                 )}
               />
@@ -283,12 +315,11 @@ const CitizenForm: React.FC = () => {
                 name="gender"
                 control={control}
                 render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.gender}>
-                    <InputLabel id="gender-label">Gender *</InputLabel>
+                  <FormControl fullWidth required error={!!errors.gender}>
+                    <InputLabel>Gender</InputLabel>
                     <Select
                       {...field}
-                      labelId="gender-label"
-                      label="Gender *"
+                      label="Gender"
                       disabled={loading}
                     >
                       <MenuItem value="male">Male</MenuItem>
@@ -308,13 +339,13 @@ const CitizenForm: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <FormControl fullWidth>
-                    <InputLabel id="marital-status-label">Marital Status</InputLabel>
+                    <InputLabel>Marital Status</InputLabel>
                     <Select
                       {...field}
-                      labelId="marital-status-label"
                       label="Marital Status"
                       disabled={loading}
                     >
+                      <MenuItem value="">Select Status</MenuItem>
                       <MenuItem value="single">Single</MenuItem>
                       <MenuItem value="married">Married</MenuItem>
                       <MenuItem value="divorced">Divorced</MenuItem>
@@ -359,7 +390,7 @@ const CitizenForm: React.FC = () => {
             Photo
           </Typography>
           
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
             <Grid item xs={12} md={4}>
               <Controller
                 name="photo_url"
@@ -367,7 +398,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <ImageUpload
                     value={field.value}
-                    onChange={field.onChange}
+                    onChange={handlePhotoChange}
                     label="Citizen Photo"
                     maxSize={2} // 2MB limit
                     width={150}
@@ -375,6 +406,14 @@ const CitizenForm: React.FC = () => {
                   />
                 )}
               />
+              {photoUploading && (
+                <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                  <CircularProgress size={16} sx={{ mr: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Processing photo...
+                  </Typography>
+                </Box>
+              )}
             </Grid>
             <Grid item xs={12} md={8}>
               <Alert severity="info" sx={{ mt: 2 }}>
@@ -387,16 +426,18 @@ const CitizenForm: React.FC = () => {
                   <li>Ensure good lighting and neutral background</li>
                   <li>Maximum file size: 2MB</li>
                   <li>Accepted formats: JPG, PNG</li>
+                  <li>Photo will be automatically processed for ISO compliance</li>
                 </Typography>
               </Alert>
             </Grid>
           </Grid>
 
+          {/* Contact Information Section */}
           <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
             Contact Information
           </Typography>
           
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Controller
                 name="phone_number"
@@ -406,8 +447,6 @@ const CitizenForm: React.FC = () => {
                     {...field}
                     label="Phone Number"
                     fullWidth
-                    error={!!errors.phone_number}
-                    helperText={errors.phone_number?.message}
                     disabled={loading}
                   />
                 )}
@@ -421,22 +460,24 @@ const CitizenForm: React.FC = () => {
                   <TextField
                     {...field}
                     label="Email"
+                    type="email"
                     fullWidth
+                    disabled={loading}
                     error={!!errors.email}
                     helperText={errors.email?.message}
-                    disabled={loading}
                   />
                 )}
               />
             </Grid>
           </Grid>
 
+          {/* Address Information Section */}
           <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
-            Address
+            Address Information
           </Typography>
           
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="address_line1"
                 control={control}
@@ -450,7 +491,7 @@ const CitizenForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="address_line2"
                 control={control}
@@ -506,7 +547,7 @@ const CitizenForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="country"
                 control={control}
@@ -520,45 +561,59 @@ const CitizenForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12}>
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value}
-                        onChange={field.onChange}
-                        disabled={loading}
-                      />
-                    }
-                    label="Active"
-                  />
-                )}
-              />
-            </Grid>
           </Grid>
 
-          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/citizens')}
-              disabled={loading}
-              sx={{ mr: 2 }}
-            >
-              Cancel
-            </Button>
+          {/* Status Section */}
+          {isEdit && (
+            <>
+              <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+                Status
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Controller
+                    name="is_active"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={field.value}
+                            onChange={field.onChange}
+                            disabled={loading}
+                          />
+                        }
+                        label="Active"
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+            </>
+          )}
+
+          {/* Submit Button */}
+          <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
             <Button
               type="submit"
               variant="contained"
               startIcon={<SaveIcon />}
-              disabled={loading}
+              disabled={loading || photoUploading}
+              size="large"
             >
-              {loading ? <CircularProgress size={24} /> : 'Save'}
+              {loading ? 'Saving...' : isEdit ? 'Update Citizen' : 'Create Citizen'}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/citizens')}
+              disabled={loading}
+              size="large"
+            >
+              Cancel
             </Button>
           </Box>
-        </Box>
+        </form>
       </Paper>
     </Box>
   );

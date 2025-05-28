@@ -17,6 +17,8 @@ import MainLayout from './layouts/MainLayout';
 // Pages
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import WorkflowDashboard from './pages/WorkflowDashboard';
+import PrinterDashboard from './pages/PrinterDashboard';
 import CitizenSearch from './pages/citizens/CitizenSearch';
 import CitizenDetails from './pages/citizens/CitizenDetails';
 import CitizenForm from './pages/citizens/CitizenForm';
@@ -100,6 +102,9 @@ const App: React.FC = () => {
                   <Route path="/licenses/:id/edit" element={<LicenseForm />} />
                   <Route path="/licenses/new" element={<LicenseForm />} />
                   
+                  {/* Workflow Management */}
+                  <Route path="/workflow" element={<WorkflowDashboard />} />
+                  
                   {/* New implemented pages */}
                   <Route path="/transactions" element={<Transactions />} />
                   <Route path="/reports" element={<Reports />} />
@@ -107,6 +112,13 @@ const App: React.FC = () => {
                   {/* Placeholder pages - to be implemented */}
                   <Route path="/settings" element={<div>Settings Page</div>} />
                   <Route path="/profile" element={<div>Profile Page</div>} />
+                </Route>
+              </Route>
+              
+              {/* Printer-only routes */}
+              <Route element={<ProtectedRoute requiredRole="printer" />}>
+                <Route element={<MainLayout />}>
+                  <Route path="/printer" element={<PrinterDashboard />} />
                 </Route>
               </Route>
               
