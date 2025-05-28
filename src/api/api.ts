@@ -1,8 +1,13 @@
 // @ts-ignore - Import axios
 import axios from 'axios';
 
+// Get the current origin as a fallback
+const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+
 // @ts-ignore - Process env variable
-const API_URL = process.env.REACT_APP_API_URL || 'https://ampro-licence.onrender.com';
+const API_URL = process.env.REACT_APP_API_URL || currentOrigin || 'https://ampro-licence.onrender.com';
+
+console.log('Using API URL:', API_URL); // Add debug log
 
 // Create axios instance
 const api = axios.create({

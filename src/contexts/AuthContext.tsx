@@ -83,6 +83,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log('Attempting login for user:', username);
+      console.log('API base URL:', api.defaults.baseURL);
+      
       // Create form-urlencoded data for login
       const formData = createFormData({ username, password });
       
