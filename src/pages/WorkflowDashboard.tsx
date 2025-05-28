@@ -44,7 +44,7 @@ import {
   PlayArrow as StartIcon,
   Stop as StopIcon
 } from '@mui/icons-material';
-import { workflowService } from '../api/services';
+import { workflowService, authService } from '../api/services';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -190,7 +190,11 @@ const WorkflowDashboard: React.FC = () => {
     if (!selectedShipment || !trackingNumber) return;
 
     try {
+      // Get current user for user_id requirement
+      const currentUser = await authService.getCurrentUser();
+      
       await workflowService.shipLicense(selectedShipment.id, {
+        user_id: currentUser.id,
         tracking_number: trackingNumber,
         shipping_method: shippingMethod,
         shipped_at: new Date().toISOString()
