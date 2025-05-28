@@ -30,6 +30,7 @@ import LicenseDetails from './pages/licenses/LicenseDetails';
 import LicenseForm from './pages/licenses/LicenseForm';
 import Transactions from './pages/Transactions';
 import Reports from './pages/Reports';
+import LocationManagement from './pages/admin/LocationManagement';
 
 // Create the query client
 const queryClient = new QueryClient();
@@ -126,6 +127,7 @@ const App: React.FC = () => {
               <Route element={<ProtectedRoute requiredRole="admin" />}>
                 <Route element={<MainLayout />}>
                   <Route path="/admin" element={<div>Admin Panel</div>} />
+                  <Route path="/location-management" element={<LocationManagement />} />
                 </Route>
               </Route>
               

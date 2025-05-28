@@ -28,7 +28,8 @@ import {
   Assignment as TransactionIcon,
   Assessment as ReportIcon,
   Settings as SettingsIcon,
-  AccountCircle
+  AccountCircle,
+  LocationOn as LocationIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -69,6 +70,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ window }) => {
     { text: 'Applications', icon: <ApplicationIcon />, path: '/applications' },
     { text: 'Transactions', icon: <TransactionIcon />, path: '/transactions' },
     { text: 'Reports', icon: <ReportIcon />, path: '/reports' },
+    ...(user?.is_superuser ? [{ text: 'Locations', icon: <LocationIcon />, path: '/location-management' }] : []),
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
 
