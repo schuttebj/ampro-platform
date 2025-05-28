@@ -150,7 +150,7 @@ const LocationManagement: React.FC = () => {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
 
   useEffect(() => {
     fetchLocations();
@@ -339,16 +339,16 @@ const LocationManagement: React.FC = () => {
   };
 
   const handleDelete = async (location: Location) => {
-    const confirmMessage = `Are you sure you want to delete "${location.name}"?\n\nThis action cannot be undone and may affect applications and collections associated with this location.`;
+    const confirmMessage = `Are you sure you want to deactivate "${location.name}"?\n\nThis will mark the location as inactive and it will no longer accept new applications or collections. This action can be reversed by editing the location later.`;
     
     if (window.confirm(confirmMessage)) {
       try {
         await api.delete(`/locations/${location.id}`);
-        setSuccess('Location deleted successfully');
+        setSuccess('Location deactivated successfully');
         fetchLocations();
       } catch (error: any) {
         console.error('Error deleting location:', error);
-        setError(error.response?.data?.detail || 'Failed to delete location');
+        setError(error.response?.data?.detail || 'Failed to deactivate location');
       }
     }
   };
@@ -396,9 +396,11 @@ const LocationManagement: React.FC = () => {
 
   const getLocationStats = () => {
     const active = locations.filter(l => l.is_active).length;
-    const totalCapacity = locations.reduce((sum, l) => sum + l.capacity_per_day, 0);
-    const acceptingApps = locations.filter(l => l.accepts_applications).length;
-    const acceptingCollections = locations.filter(l => l.accepts_collections).length;
+    const totalCapacity = locations
+      .filter(l => l.is_active)
+      .reduce((sum, l) => sum + l.capacity_per_day, 0);
+    const acceptingApps = locations.filter(l => l.is_active && l.accepts_applications).length;
+    const acceptingCollections = locations.filter(l => l.is_active && l.accepts_collections).length;
 
     return { active, totalCapacity, acceptingApps, acceptingCollections };
   };
@@ -634,7 +636,7 @@ const LocationManagement: React.FC = () => {
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete Location">
+                      <Tooltip title="Deactivate Location">
                         <IconButton
                           color="error"
                           onClick={() => handleDelete(location)}
