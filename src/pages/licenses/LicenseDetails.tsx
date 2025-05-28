@@ -528,56 +528,6 @@ const LicenseDetails: React.FC = () => {
             )}
           </Paper>
         </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Typography variant="h5" gutterBottom>
-              License Status Management
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
-              {license.status === 'active' && (
-                <>
-                  <Button 
-                    variant="outlined"
-                    color="warning"
-                    startIcon={<SuspendIcon />}
-                    onClick={() => handleStatusChange('suspend')}
-                  >
-                    Suspend License
-                  </Button>
-                  <Button 
-                    variant="outlined"
-                    color="error"
-                    startIcon={<RevokeIcon />}
-                    onClick={() => handleStatusChange('revoke')}
-                  >
-                    Revoke License
-                  </Button>
-                </>
-              )}
-              {license.status === 'suspended' && (
-                <Button 
-                  variant="outlined"
-                  color="success"
-                  startIcon={<BackIcon />}
-                  onClick={() => handleStatusChange('reactivate')}
-                >
-                  Reactivate License
-                </Button>
-              )}
-              {(license.status === 'active' || license.status === 'expired') && (
-                <Button 
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<RenewIcon />}
-                  onClick={() => handleStatusChange('renew')}
-                >
-                  Renew License
-                </Button>
-              )}
-            </Box>
-          </Paper>
-        </Grid>
       </Grid>
 
       {/* Status Change Dialog */}
