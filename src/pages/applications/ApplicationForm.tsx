@@ -156,7 +156,8 @@ const ApplicationForm: React.FC = () => {
   useEffect(() => {
     const fetchCitizens = async () => {
       try {
-        const response = await api.get('/citizens');
+        // Load first 50 citizens by default
+        const response = await api.get('/citizens/', { params: { limit: 50 } });
         // Add full name property to each citizen for display in dropdown
         const citizensWithFullName = response.data.map((citizen: Citizen) => ({
           ...citizen,
@@ -170,6 +171,50 @@ const ApplicationForm: React.FC = () => {
     };
     fetchCitizens();
   }, []);
+
+  // Search citizens function
+  const searchCitizens = async (searchTerm: string) => {
+    if (!searchTerm || searchTerm.length < 2) {
+      return;
+    }
+    
+    try {
+      let response;
+      
+      // Check if search term looks like an ID number
+      if (/^\d+$/.test(searchTerm)) {
+        response = await api.get('/citizens/search', {
+          params: { id_number: searchTerm, limit: 20 }
+        });
+      } else {
+        // Split search term for name search
+        const nameParts = searchTerm.trim().split(' ');
+        const searchParams: any = { limit: 20 };
+        
+        if (nameParts.length >= 2) {
+          searchParams.first_name = nameParts[0];
+          searchParams.last_name = nameParts.slice(1).join(' ');
+        } else {
+          // Search both first and last name with the same term
+          searchParams.first_name = searchTerm;
+          searchParams.last_name = searchTerm;
+        }
+        
+        response = await api.get('/citizens/search', { params: searchParams });
+      }
+      
+      // Add full name property to each citizen for display in dropdown
+      const citizensWithFullName = response.data.map((citizen: Citizen) => ({
+        ...citizen,
+        full_name: `${citizen.first_name} ${citizen.last_name} (ID: ${citizen.id_number})`
+      }));
+      
+      setCitizens(citizensWithFullName);
+    } catch (error: any) {
+      console.error('Error searching citizens:', error);
+      // Don't show error for search - just keep existing results
+    }
+  };
 
   // Fetch locations that accept applications
   useEffect(() => {
@@ -390,13 +435,22 @@ const ApplicationForm: React.FC = () => {
                       setSelectedCitizen(newValue);
                       setValue('citizen_id', newValue?.id || 0);
                     }}
+                    onInputChange={(_, newInputValue) => {
+                      // Trigger search when user types
+                      if (newInputValue && newInputValue.length >= 2) {
+                        searchCitizens(newInputValue);
+                      }
+                    }}
+                    filterOptions={(options) => options} // Don't filter on client side
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         label="Citizen *"
                         error={!!errors.citizen_id}
-                        helperText={errors.citizen_id?.message}
+                        helperText={errors.citizen_id?.message || "Type name or ID number to search"}
                         disabled={loading}
+                        placeholder="Search by name or ID number..."
                       />
                     )}
                   />

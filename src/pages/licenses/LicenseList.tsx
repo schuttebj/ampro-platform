@@ -82,16 +82,20 @@ const LicenseList: React.FC = () => {
         params.status = status;
       }
       
-      if (query) {
-        // If query looks like a license number format
-        if (/^[A-Z]{2}\d+$/.test(query)) {
-          params.license_number = query;
+      if (query && query.trim()) {
+        // If query looks like a license number format (letters + numbers)
+        if (/^[A-Z]{2}\d+$/i.test(query.trim())) {
+          params.license_number = query.trim().toUpperCase();
+        } else if (/^\d+$/.test(query.trim())) {
+          // If it's just numbers, could be citizen ID or license ID
+          params.citizen_id_search = query.trim();
         } else {
-          // Otherwise search by citizen name or ID
-          params.search = query;
+          // Otherwise search by citizen name
+          params.citizen_name_search = query.trim();
         }
       }
       
+      console.log('Fetching licenses with params:', params);
       const response = await api.get(endpoint, { params });
       console.log('API Response:', response.data);
       

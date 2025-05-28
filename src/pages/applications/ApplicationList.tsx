@@ -81,10 +81,17 @@ const ApplicationList: React.FC = () => {
         params.status = status;
       }
       
-      if (query) {
-        params.search = query;
+      if (query && query.trim()) {
+        // If query looks like an application ID (number only)
+        if (/^\d+$/.test(query.trim())) {
+          params.id = query.trim();
+        } else {
+          // Search by citizen name - we'll need to implement this on backend
+          params.citizen_search = query.trim();
+        }
       }
       
+      console.log('Fetching applications with params:', params);
       const response = await api.get(endpoint, { params });
       console.log('API Response:', response.data);
       
