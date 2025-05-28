@@ -208,6 +208,15 @@ const LocationManagement: React.FC = () => {
       errors.code = 'Location code is required';
     } else if (formData.code.length < 2) {
       errors.code = 'Location code must be at least 2 characters';
+    } else {
+      // Check for duplicate codes (exclude current location if editing)
+      const existingLocation = locations.find(loc => 
+        loc.code.toUpperCase() === formData.code.toUpperCase() && 
+        loc.id !== editingLocation?.id
+      );
+      if (existingLocation) {
+        errors.code = `Location code "${formData.code}" already exists. Use "${generateLocationCode(formData.name, locations)}" instead.`;
+      }
     }
 
     if (!formData.address_line1.trim()) {
@@ -350,6 +359,15 @@ const LocationManagement: React.FC = () => {
       [field]: value
     }));
 
+    // Auto-generate code when name changes (only for new locations)
+    if (field === 'name' && !editingLocation && value) {
+      const generatedCode = generateLocationCode(value, locations);
+      setFormData(prev => ({
+        ...prev,
+        code: generatedCode
+      }));
+    }
+
     // Clear error when user starts typing
     if (formErrors[field as keyof FormErrors]) {
       setFormErrors(prev => ({
@@ -357,6 +375,23 @@ const LocationManagement: React.FC = () => {
         [field]: undefined
       }));
     }
+  };
+
+  const generateLocationCode = (name: string, existingLocations: Location[]) => {
+    // Generate base code from name (first 3 letters + 3 numbers)
+    const baseCode = name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+    const existingCodes = existingLocations.map(loc => loc.code.toUpperCase());
+    
+    // Try incremental numbers starting from 001
+    for (let i = 1; i <= 999; i++) {
+      const code = `${baseCode}${i.toString().padStart(3, '0')}`;
+      if (!existingCodes.includes(code)) {
+        return code;
+      }
+    }
+    
+    // Fallback to timestamp if all combinations are taken
+    return `LOC${Date.now().toString().slice(-6)}`;
   };
 
   const getLocationStats = () => {
@@ -643,15 +678,30 @@ const LocationManagement: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Location Code *"
-                value={formData.code}
-                onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
-                inputProps={{ maxLength: 8 }}
-                error={!!formErrors.code}
-                helperText={formErrors.code || 'Unique identifier (e.g., CPT001)'}
-              />
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <TextField
+                  fullWidth
+                  label="Location Code *"
+                  value={formData.code}
+                  onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
+                  inputProps={{ maxLength: 8 }}
+                  error={!!formErrors.code}
+                  helperText={formErrors.code || 'Unique identifier (e.g., CPT001)'}
+                />
+                {!editingLocation && (
+                  <Tooltip title="Generate new code">
+                    <IconButton
+                      onClick={() => {
+                        const newCode = generateLocationCode(formData.name || 'LOC', locations);
+                        handleInputChange('code', newCode);
+                      }}
+                      sx={{ mt: 1 }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
             </Grid>
 
             {/* Address Information */}
