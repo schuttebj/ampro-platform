@@ -164,13 +164,6 @@ export const licenseService = {
     return response.data;
   },
 
-  getLicensePreview: async (licenseId: number): Promise<Blob> => {
-    const response = await api.get(`/licenses/${licenseId}/preview`, {
-      responseType: 'blob'
-    });
-    return response.data;
-  },
-
   printLicense: async (licenseId: number): Promise<{ success: boolean; message: string }> => {
     const response = await api.post(`/licenses/${licenseId}/print`);
     return response.data;
