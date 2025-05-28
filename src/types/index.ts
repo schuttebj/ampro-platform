@@ -4,7 +4,7 @@ export interface User {
   username: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'manager' | 'officer' | 'printer' | 'viewer';
+  role: 'ADMIN' | 'MANAGER' | 'OFFICER' | 'PRINTER' | 'VIEWER';
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
