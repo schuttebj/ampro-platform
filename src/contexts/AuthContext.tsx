@@ -90,8 +90,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       formData.append('username', username);
       formData.append('password', password);
       
-      // Use the Vercel deployment URL since that's working in the diagnostics
-      const apiUrl = 'https://ampro-platform.vercel.app/api/v1/auth/login';
+      // Use the actual backend URL from api.ts
+      const apiUrl = getFullApiUrl('/auth/login');
       
       console.log('Using login URL:', apiUrl);
       
@@ -163,8 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const formData = createFormData({ refresh_token: storedRefreshToken });
       
-      // Use the Vercel deployment URL
-      const tokenUrl = 'https://ampro-platform.vercel.app/api/v1/auth/token';
+      // Use the function from api.ts to get the token URL
+      const tokenUrl = getFullApiUrl('/auth/token');
       console.log('Using token refresh URL:', tokenUrl);
       
       const response = await axios.post(tokenUrl, formData, {

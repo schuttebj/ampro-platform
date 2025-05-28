@@ -1,8 +1,8 @@
 // @ts-ignore - Import axios
 import axios from 'axios';
 
-// Explicitly set API URL to the Vercel deployment that's working
-const API_URL = 'https://ampro-platform.vercel.app';
+// Set backend URL to the Render deployment which seems to be the actual backend
+const API_URL = 'https://ampro-licence.onrender.com';
 
 console.log('Using API URL:', API_URL); // Add debug log
 
@@ -81,12 +81,14 @@ api.interceptors.response.use(
 
 // Function to test API connection with multiple possible URLs
 export const testApiConnection = async () => {
-  // Test only the working Vercel endpoints based on diagnostics
+  // Test both frontend and backend URLs to diagnose the issue
   const urls = [
+    // Test backend (Render) endpoints
     `${API_URL}/api/v1/health`,
     `${API_URL}/api/v1`,
-    // Test auth endpoint
-    `${API_URL}/api/v1/auth/login`
+    `${API_URL}/api/v1/auth/login`,
+    // Test if the frontend is proxying to backend
+    `${window.location.origin}/api/v1/health`
   ];
   
   console.log('Testing API connections...');
