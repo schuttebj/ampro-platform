@@ -1,11 +1,8 @@
 // @ts-ignore - Import axios
 import axios from 'axios';
 
-// Get the current origin as a fallback
-const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-
-// @ts-ignore - Process env variable
-const API_URL = process.env.REACT_APP_API_URL || currentOrigin || 'https://ampro-licence.onrender.com';
+// Explicitly set API URL to the Vercel deployment that's working
+const API_URL = 'https://ampro-platform.vercel.app';
 
 console.log('Using API URL:', API_URL); // Add debug log
 
@@ -84,12 +81,12 @@ api.interceptors.response.use(
 
 // Function to test API connection with multiple possible URLs
 export const testApiConnection = async () => {
+  // Test only the working Vercel endpoints based on diagnostics
   const urls = [
-    `${window.location.origin}/api/v1/health`,
-    `${window.location.origin}/api/v1`,
-    `${window.location.protocol}//${window.location.hostname}/api/v1/health`,
-    'https://ampro-licence.onrender.com/api/v1/health',
-    `${API_URL}/api/v1/health`
+    `${API_URL}/api/v1/health`,
+    `${API_URL}/api/v1`,
+    // Test auth endpoint
+    `${API_URL}/api/v1/auth/login`
   ];
   
   console.log('Testing API connections...');
@@ -98,13 +95,16 @@ export const testApiConnection = async () => {
     urls.map(async (url) => {
       try {
         console.log(`Testing URL: ${url}`);
+        // Use GET for health checks, OPTIONS for login to check if it accepts POST
+        const method = url.includes('/auth/login') ? 'OPTIONS' : 'GET';
         const response = await fetch(url, { 
-          method: 'GET',
+          method,
           mode: 'cors',
           credentials: 'include'
         });
         return { 
           url, 
+          method,
           status: response.status, 
           ok: response.ok,
           statusText: response.statusText
