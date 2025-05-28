@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { testApiConnection } from '../api/api';
 import { 
   Box, 
   Container, 
@@ -9,19 +10,38 @@ import {
   Button, 
   Paper, 
   Alert,
-  CircularProgress
+  CircularProgress,
+  Collapse,
+  IconButton
 } from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [diagnosticMode, setDiagnosticMode] = useState(false);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   // Get the redirect path or default to dashboard
   const from = location.state?.from?.pathname || '/dashboard';
+  
+  // Run diagnostic tests on component mount
+  useEffect(() => {
+    const runDiagnostics = async () => {
+      try {
+        const results = await testApiConnection();
+        setDiagnosticInfo(results);
+      } catch (err) {
+        console.error('Error running diagnostics:', err);
+      }
+    };
+    
+    runDiagnostics();
+  }, []);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +51,18 @@ const Login: React.FC = () => {
       await login(username, password);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      console.error('Login error details:', err);
+      setError(err.message || 'Login failed. Please check your credentials and try again.');
+    }
+  };
+  
+  const runManualTest = async () => {
+    try {
+      const results = await testApiConnection();
+      setDiagnosticInfo(results);
+      setDiagnosticMode(true);
+    } catch (err) {
+      console.error('Error running diagnostics:', err);
     }
   };
   
@@ -90,6 +121,27 @@ const Login: React.FC = () => {
             >
               {isLoading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <Button 
+                variant="outlined" 
+                color="info" 
+                size="small"
+                onClick={runManualTest}
+                startIcon={<InfoIcon />}
+              >
+                Connection Diagnostics
+              </Button>
+            </Box>
+            
+            <Collapse in={diagnosticMode}>
+              <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="subtitle2" gutterBottom>Diagnostic Information:</Typography>
+                <Typography variant="body2" component="pre" sx={{ overflow: 'auto', maxHeight: 200 }}>
+                  {diagnosticInfo ? JSON.stringify(diagnosticInfo, null, 2) : 'No diagnostic data available'}
+                </Typography>
+              </Box>
+            </Collapse>
           </Box>
         </Paper>
       </Box>

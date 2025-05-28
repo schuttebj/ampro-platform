@@ -82,4 +82,42 @@ api.interceptors.response.use(
   }
 );
 
+// Function to test API connection with multiple possible URLs
+export const testApiConnection = async () => {
+  const urls = [
+    `${window.location.origin}/api/v1/health`,
+    `${window.location.origin}/api/v1`,
+    `${window.location.protocol}//${window.location.hostname}/api/v1/health`,
+    'https://ampro-licence.onrender.com/api/v1/health',
+    `${API_URL}/api/v1/health`
+  ];
+  
+  console.log('Testing API connections...');
+  
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      try {
+        console.log(`Testing URL: ${url}`);
+        const response = await fetch(url, { 
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'include'
+        });
+        return { 
+          url, 
+          status: response.status, 
+          ok: response.ok,
+          statusText: response.statusText
+        };
+      } catch (error: any) {
+        console.error(`Error connecting to ${url}:`, error);
+        return { url, error: error.message || 'Unknown error' };
+      }
+    })
+  );
+  
+  console.log('API connection test results:', results);
+  return results;
+};
+
 export default api; 

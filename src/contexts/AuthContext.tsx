@@ -85,54 +85,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting login for user:', username);
       
-      // Create form-urlencoded data for login
-      const formData = createFormData({ username, password });
+      // Create a simple form data object manually
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
       
-      // Get the direct URL for the login endpoint
-      const loginUrl = getFullApiUrl('/auth/login');
-      console.log('Using login URL:', loginUrl);
+      // Determine the API URL based on current origin
+      const origin = window.location.origin;
+      const apiUrl = `${origin}/api/v1/auth/login`;
       
-      // Set the correct content type for this request
-      const response = await axios.post(loginUrl, formData, {
+      console.log('Using login URL:', apiUrl);
+      
+      // Make the request with fetch instead of axios
+      const response = await fetch(apiUrl, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        withCredentials: true, // Important for CORS
+        body: formData.toString(),
+        credentials: 'include', // Include credentials (cookies, etc.)
       });
       
-      console.log('Login response:', response.data); // Debug response
+      // Check if the response is successful
+      if (!response.ok) {
+        console.error('Login failed with status:', response.status);
+        throw new Error(`Login failed with status: ${response.status}`);
+      }
       
-      // Handle different response formats
-      const access_token = response.data.access_token || response.data.token;
-      const refresh_token = response.data.refresh_token || response.data.token;
+      // Parse the response
+      const data = await response.json();
+      console.log('Login response:', data);
+      
+      // Extract token
+      const access_token = data.access_token || data.token;
       
       if (!access_token) {
         throw new Error('No access token received from server');
       }
       
-      // Store tokens
-      setAuthToken(access_token);
-      if (refresh_token) {
-        localStorage.setItem('refreshToken', refresh_token);
-      }
+      // Store token
+      localStorage.setItem('accessToken', access_token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
-      // Try to fetch user data if the endpoint exists
-      try {
-        const userResponse = await api.get('/auth/me');
-        console.log('User data:', userResponse.data);
-        setUser(userResponse.data);
-      } catch (userError) {
-        console.error('Could not fetch user data, using generic user:', userError);
-        // Create a basic user object if we can't get user data
-        setUser({
-          id: 1,
-          username,
-          email: '',
-          full_name: username,
-          role: 'user',
-          is_active: true
-        });
-      }
+      // Create a basic user object
+      setUser({
+        id: 1,
+        username,
+        email: '',
+        full_name: username,
+        role: 'user',
+        is_active: true
+      });
+      
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
