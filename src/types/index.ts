@@ -267,6 +267,7 @@ export interface ShippingAction {
   user_id: number;
   tracking_number?: string;
   shipping_method?: string;
+  shipped_at?: string;
   notes?: string;
 }
 
