@@ -41,21 +41,7 @@ import {
   Assignment as AssignmentIcon
 } from '@mui/icons-material';
 import { applicationService, workflowService } from '../../api/services';
-
-interface Application {
-  id: number;
-  citizen_id: number;
-  citizen_name: string;
-  citizen_id_number: string;
-  applied_category: string;
-  application_type: string;
-  status: string;
-  application_date: string;
-  payment_verified: boolean;
-  documents_verified: boolean;
-  medical_verified: boolean;
-  collection_point?: string;
-}
+import { Application } from '../../types';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -216,12 +202,12 @@ const ApplicationReview: React.FC = () => {
           {applications.map((application) => (
             <TableRow key={application.id}>
               <TableCell>APP-{application.id.toString().padStart(6, '0')}</TableCell>
-              <TableCell>{application.citizen_name}</TableCell>
-              <TableCell>{application.citizen_id_number}</TableCell>
+              <TableCell>{application.citizen ? `${application.citizen.first_name} ${application.citizen.last_name}` : 'Unknown'}</TableCell>
+              <TableCell>{application.citizen?.id_number || 'N/A'}</TableCell>
               <TableCell>{application.applied_category}</TableCell>
               <TableCell>
                 <Chip 
-                  label={application.application_type} 
+                  label={application.applied_category} 
                   size="small" 
                   variant="outlined"
                 />
@@ -269,7 +255,7 @@ const ApplicationReview: React.FC = () => {
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
-                    {application.status === 'submitted' && (
+                    {application.status === 'SUBMITTED' && (
                       <Tooltip title={canApprove(application) ? "Approve Application" : "Complete verification first"}>
                         <span>
                           <IconButton 
@@ -444,10 +430,10 @@ const ApplicationReview: React.FC = () => {
                 Application: APP-{selectedApplication.id.toString().padStart(6, '0')}
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Citizen: {selectedApplication.citizen_name} ({selectedApplication.citizen_id_number})
+                Citizen: {selectedApplication.citizen ? `${selectedApplication.citizen.first_name} ${selectedApplication.citizen.last_name}` : 'Unknown'} ({selectedApplication.citizen?.id_number || 'N/A'})
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Category: {selectedApplication.applied_category} - {selectedApplication.application_type}
+                Category: {selectedApplication.applied_category}
               </Typography>
 
               <FormControl fullWidth sx={{ mt: 3, mb: 2 }}>
