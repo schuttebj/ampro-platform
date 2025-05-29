@@ -29,7 +29,8 @@ import {
   Assessment as ReportIcon,
   Settings as SettingsIcon,
   AccountCircle,
-  LocationOn as LocationIcon
+  LocationOn as LocationIcon,
+  Layers as WorkflowIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -68,6 +69,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ window }) => {
     { text: 'Citizens', icon: <PeopleIcon />, path: '/citizens' },
     { text: 'Licenses', icon: <LicenseIcon />, path: '/licenses' },
     { text: 'Applications', icon: <ApplicationIcon />, path: '/applications' },
+    { text: 'Workflow', icon: <WorkflowIcon />, path: '/workflow' },
     { text: 'Transactions', icon: <TransactionIcon />, path: '/transactions' },
     { text: 'Reports', icon: <ReportIcon />, path: '/reports' },
     ...(user?.is_superuser ? [{ text: 'Locations', icon: <LocationIcon />, path: '/location-management' }] : []),
