@@ -100,17 +100,21 @@ const ApplicationReview: React.FC = () => {
       setLoading(true);
       setError('');
 
-      // Load applications - API returns direct array, not PaginatedResponse
+      // Load pending applications using the correct endpoint
+      const pendingApps = await applicationService.getPendingApplications();
+      
+      // Also load all applications to get other statuses  
       const allApplications = await applicationService.getApplications();
       
-      // Check if the response is an array
-      if (!Array.isArray(allApplications)) {
-        throw new Error('Invalid response format from applications API');
-      }
+      // Check if the response is an array for all applications
+      const allAppsArray = Array.isArray(allApplications) ? allApplications : allApplications.items || [];
       
-      const pending = allApplications.filter(app => app.status === 'SUBMITTED');
-      const underReview = allApplications.filter(app => app.status === 'UNDER_REVIEW');
-      const completed = allApplications.filter(app => 
+      // Pending applications come from the dedicated endpoint
+      const pending = Array.isArray(pendingApps) ? pendingApps : [];
+      
+      // Filter other statuses from all applications
+      const underReview = allAppsArray.filter(app => app.status === 'UNDER_REVIEW');
+      const completed = allAppsArray.filter(app => 
         ['APPROVED', 'LICENSE_GENERATED', 'QUEUED_FOR_PRINTING'].includes(app.status)
       );
 
