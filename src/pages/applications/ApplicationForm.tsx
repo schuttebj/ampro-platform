@@ -231,11 +231,21 @@ const ApplicationForm: React.FC = () => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const response = await api.get('/locations/accepting-applications');
+        // Try the correct endpoint for collections
+        const response = await api.get('/locations/accepting-collections');
         setLocations(response.data);
+        console.log('Loaded locations:', response.data);
       } catch (error: any) {
         console.error('Error fetching locations:', error);
-        // Don't set error as this is not critical
+        // Try fallback endpoint
+        try {
+          const fallbackResponse = await api.get('/locations/');
+          const activeLocations = fallbackResponse.data.filter((loc: any) => loc.is_active);
+          setLocations(activeLocations);
+          console.log('Loaded fallback locations:', activeLocations);
+        } catch (fallbackError) {
+          console.error('Error with fallback locations:', fallbackError);
+        }
       }
     };
     fetchLocations();
@@ -454,6 +464,7 @@ const ApplicationForm: React.FC = () => {
         
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <Grid container spacing={3}>
+            {/* Citizen Selection - Full Width */}
             <Grid item xs={12}>
               <Controller
                 name="citizen_id"
@@ -489,6 +500,8 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
+
+            {/* First Row - License Category and Application Type */}
             <Grid item xs={12} md={6}>
               <Controller
                 name="applied_category"
@@ -537,6 +550,8 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
+
+            {/* Second Row - Status and Application Date */}
             <Grid item xs={12} md={6}>
               <Controller
                 name="status"
@@ -581,7 +596,9 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+
+            {/* Third Row - Verification Fields */}
+            <Grid item xs={12} md={4}>
               <Controller
                 name="documents_verified"
                 control={control}
@@ -607,7 +624,7 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Controller
                 name="medical_verified"
                 control={control}
@@ -633,7 +650,7 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Controller
                 name="payment_verified"
                 control={control}
@@ -659,40 +676,8 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12}>
-              <Controller
-                name="notes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Notes"
-                    fullWidth
-                    multiline
-                    rows={2}
-                    error={!!errors.notes}
-                    helperText={errors.notes?.message}
-                    disabled={loading}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Controller
-                name="review_notes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Review Notes"
-                    fullWidth
-                    multiline
-                    rows={2}
-                    disabled={loading}
-                  />
-                )}
-              />
-            </Grid>
+
+            {/* Collection Point - Half Width */}
             <Grid item xs={12} md={6}>
               <Controller
                 name="location_id"
@@ -721,6 +706,49 @@ const ApplicationForm: React.FC = () => {
                       ))}
                     </Select>
                   </FormControl>
+                )}
+              />
+            </Grid>
+
+            {/* Empty space for balance */}
+            <Grid item xs={12} md={6}>
+              {/* This creates balanced spacing */}
+            </Grid>
+
+            {/* Notes Section - Full Width */}
+            <Grid item xs={12}>
+              <Controller
+                name="notes"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Notes"
+                    fullWidth
+                    multiline
+                    rows={3}
+                    error={!!errors.notes}
+                    helperText={errors.notes?.message}
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+
+            {/* Review Notes Section - Full Width */}
+            <Grid item xs={12}>
+              <Controller
+                name="review_notes"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Review Notes"
+                    fullWidth
+                    multiline
+                    rows={3}
+                    disabled={loading}
+                  />
                 )}
               />
             </Grid>
