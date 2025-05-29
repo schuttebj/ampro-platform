@@ -261,21 +261,6 @@ const ApplicationForm: React.FC = () => {
         
         reset(formattedData);
         
-        // Find the selected citizen for the Autocomplete
-        if (applicationData.citizen_id && citizens.length > 0) {
-          const citizen = citizens.find((c: any) => c.id === applicationData.citizen_id);
-          if (citizen) {
-            setSelectedCitizen(citizen);
-          }
-        }
-
-        // Find the selected location for the dropdown
-        if (applicationData.location_id && locations.length > 0) {
-          const location = locations.find((l: any) => l.id === applicationData.location_id);
-          if (location) {
-            setSelectedLocation(location);
-          }
-        }
       } catch (error: any) {
         console.error('Error fetching application:', error);
         setError(error.response?.data?.detail || 'Failed to load application details.');
@@ -287,7 +272,42 @@ const ApplicationForm: React.FC = () => {
     if (isEditMode && id) {
       fetchApplication();
     }
-  }, [id, reset, isEditMode, citizens, locations]);
+  }, [id, reset, isEditMode]);
+
+  // Separate effect to handle citizen and location selection after data is loaded
+  useEffect(() => {
+    const updateSelections = async () => {
+      if (!isEditMode || !id) return;
+      
+      try {
+        const response = await api.get(`/applications/${id}`);
+        const applicationData = response.data;
+        
+        // Find and set the selected citizen for the Autocomplete
+        if (applicationData.citizen_id && citizens.length > 0) {
+          const citizen = citizens.find((c: any) => c.id === applicationData.citizen_id);
+          if (citizen) {
+            setSelectedCitizen(citizen);
+          }
+        }
+
+        // Find and set the selected location for the dropdown
+        if (applicationData.location_id && locations.length > 0) {
+          const location = locations.find((l: any) => l.id === applicationData.location_id);
+          if (location) {
+            setSelectedLocation(location);
+          }
+        }
+      } catch (error: any) {
+        console.error('Error updating selections:', error);
+      }
+    };
+
+    // Only run when citizens and locations are loaded
+    if (citizens.length > 0 && locations.length > 0) {
+      updateSelections();
+    }
+  }, [citizens, locations, id, isEditMode]);
 
   const onSubmit = async (data: ApplicationFormData) => {
     try {
