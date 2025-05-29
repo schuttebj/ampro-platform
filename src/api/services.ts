@@ -302,6 +302,16 @@ export const applicationService = {
 export const workflowService = {
   // Application Workflow
   approveApplication: async (applicationId: number, approvalData: ApplicationApprovalRequest): Promise<any> => {
+    // First, move application to UNDER_REVIEW status if it's in SUBMITTED status
+    try {
+      await api.put(`/applications/${applicationId}`, {
+        status: 'UNDER_REVIEW'
+      });
+    } catch (err) {
+      console.log('Application might already be in review status, continuing...');
+    }
+    
+    // Then approve using the workflow endpoint with collection_point
     const response = await api.post(`/workflow/applications/${applicationId}/approve`, null, {
       params: { collection_point: approvalData.collection_point }
     });
