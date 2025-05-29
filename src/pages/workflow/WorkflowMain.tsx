@@ -349,6 +349,42 @@ const WorkflowMain: React.FC = () => {
         ))}
       </Grid>
 
+      {/* Developer Tools Section */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Developer & Testing Tools
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Tools for testing and debugging the workflow system
+        </Typography>
+        
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={4}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <PrintIcon sx={{ color: 'primary.main', mr: 2 }} />
+                  <Typography variant="h6">
+                    Manual Print Jobs
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Create test print jobs and manage approved applications without print jobs
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  fullWidth
+                  onClick={() => navigate('/workflow/manual-print-jobs')}
+                >
+                  Open Tool
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+
       {/* Quick Actions */}
       <Card sx={{ mt: 4 }}>
         <CardContent>

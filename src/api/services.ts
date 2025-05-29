@@ -406,6 +406,22 @@ export const workflowService = {
   getWorkflowStatus: async (applicationId: number): Promise<WorkflowStatus> => {
     const response = await api.get(`/workflow/workflow/status/${applicationId}`);
     return response.data;
+  },
+
+  // Manual Print Job Management (for testing)
+  getApprovedApplicationsWithoutPrintJobs: async (): Promise<any[]> => {
+    const response = await api.get('/workflow/applications/approved-without-print-jobs');
+    return response.data;
+  },
+
+  createPrintJobForApplication: async (applicationId: number): Promise<any> => {
+    const response = await api.post(`/workflow/applications/${applicationId}/create-print-job`);
+    return response.data;
+  },
+
+  createTestPrintJob: async (): Promise<any> => {
+    const response = await api.post('/workflow/test/create-test-print-job');
+    return response.data;
   }
 };
 

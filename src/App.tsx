@@ -39,6 +39,7 @@ import PrintQueue from './pages/workflow/PrintQueue';
 import ShippingDashboard from './pages/workflow/ShippingDashboard';
 import CollectionDashboard from './pages/workflow/CollectionDashboard';
 import WorkflowAnalytics from './pages/workflow/WorkflowAnalytics';
+import ManualPrintJobCreator from './pages/workflow/ManualPrintJobCreator';
 
 // Create the query client
 const queryClient = new QueryClient();
@@ -119,6 +120,7 @@ const App: React.FC = () => {
                   <Route path="/workflow/applications" element={<ApplicationReview />} />
                   <Route path="/workflow/applications/pending" element={<ApplicationReview />} />
                   <Route path="/workflow/print-queue" element={<PrintQueue />} />
+                  <Route path="/workflow/manual-print-jobs" element={<ManualPrintJobCreator />} />
                   <Route path="/workflow/shipping" element={<ShippingDashboard />} />
                   <Route path="/workflow/collection" element={<CollectionDashboard />} />
                   <Route path="/workflow/analytics" element={<WorkflowAnalytics />} />

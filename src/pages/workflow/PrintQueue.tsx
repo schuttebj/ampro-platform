@@ -89,8 +89,14 @@ const PrintQueue: React.FC = () => {
   const [copiesCount, setCopiesCount] = useState(1);
   const [completionNotes, setCompletionNotes] = useState('');
 
+  // Manual testing state
+  const [approvedApps, setApprovedApps] = useState<any[]>([]);
+  const [testingDialogOpen, setTestingDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
   useEffect(() => {
     loadPrintQueueData();
+    loadApprovedApplications();
   }, []);
 
   const loadPrintQueueData = async () => {
@@ -118,6 +124,45 @@ const PrintQueue: React.FC = () => {
     } catch (err: any) {
       console.error('Error loading print queue data:', err);
       setError(err.response?.data?.detail || 'Failed to load print queue data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadApprovedApplications = async () => {
+    try {
+      const approvedAppsData = await workflowService.getApprovedApplicationsWithoutPrintJobs();
+      setApprovedApps(approvedAppsData);
+    } catch (err: any) {
+      console.warn('Failed to load approved applications:', err);
+      setApprovedApps([]);
+    }
+  };
+
+  const handleCreateTestPrintJob = async () => {
+    try {
+      setLoading(true);
+      const result = await workflowService.createTestPrintJob();
+      setSuccessMessage(`Test print job created successfully! Job ID: ${result.print_job_id}`);
+      loadPrintQueueData();
+      loadApprovedApplications();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to create test print job');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreatePrintJobForApplication = async (applicationId: number) => {
+    try {
+      setLoading(true);
+      const result = await workflowService.createPrintJobForApplication(applicationId);
+      setSuccessMessage(`Print job created for application ${applicationId}! Job ID: ${result.print_job_id}`);
+      loadPrintQueueData();
+      loadApprovedApplications();
+      setTestingDialogOpen(false);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to create print job');
     } finally {
       setLoading(false);
     }
@@ -374,31 +419,44 @@ const PrintQueue: React.FC = () => {
         <Typography variant="h4" component="h1">
           Print Queue Management
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Refresh Queue">
-            <IconButton onClick={loadPrintQueueData} disabled={loading}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
+        <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
+            startIcon={<RefreshIcon />}
+            onClick={loadPrintQueueData}
+            disabled={loading}
             variant="outlined"
-            startIcon={<SettingsIcon />}
-            onClick={() => navigate('/workflow/printers')}
           >
-            Printer Settings
+            Refresh
           </Button>
           <Button
+            startIcon={<SettingsIcon />}
+            onClick={() => setTestingDialogOpen(true)}
             variant="outlined"
-            onClick={() => navigate('/workflow')}
+            color="info"
           >
-            Back to Workflow
+            Manual Testing
           </Button>
         </Box>
       </Box>
 
-      {/* Error Alert */}
+      {/* Success Message */}
+      {successMessage && (
+        <Alert 
+          severity="success" 
+          onClose={() => setSuccessMessage('')} 
+          sx={{ mb: 2 }}
+        >
+          {successMessage}
+        </Alert>
+      )}
+
+      {/* Error Message */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert 
+          severity="error" 
+          onClose={() => setError('')} 
+          sx={{ mb: 2 }}
+        >
           {error}
         </Alert>
       )}
@@ -681,6 +739,37 @@ const PrintQueue: React.FC = () => {
           >
             Complete Job
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Manual Testing Dialog */}
+      <Dialog open={testingDialogOpen} onClose={() => setTestingDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Manual Testing</DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Use the dedicated Manual Print Job Creator tool to:
+            </Typography>
+            <Box component="ul" sx={{ mb: 2 }}>
+              <li>Create test print jobs for system testing</li>
+              <li>Generate print jobs for approved applications</li>
+              <li>View applications ready for print job creation</li>
+            </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              onClick={() => {
+                navigate('/workflow/manual-print-jobs');
+                setTestingDialogOpen(false);
+              }}
+            >
+              Open Manual Print Job Creator
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTestingDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
