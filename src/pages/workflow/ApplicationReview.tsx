@@ -100,9 +100,13 @@ const ApplicationReview: React.FC = () => {
       setLoading(true);
       setError('');
 
-      // Load applications by status - Fixed for PaginatedResponse
-      const allApplicationsResponse = await applicationService.getApplications();
-      const allApplications = allApplicationsResponse.items;
+      // Load applications - API returns direct array, not PaginatedResponse
+      const allApplications = await applicationService.getApplications();
+      
+      // Check if the response is an array
+      if (!Array.isArray(allApplications)) {
+        throw new Error('Invalid response format from applications API');
+      }
       
       const pending = allApplications.filter(app => app.status === 'SUBMITTED');
       const underReview = allApplications.filter(app => app.status === 'UNDER_REVIEW');

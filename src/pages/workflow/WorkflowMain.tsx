@@ -73,10 +73,37 @@ const WorkflowMain: React.FC = () => {
       setLoading(true);
       setError('');
 
-      const [printStats, shippingStats] = await Promise.all([
-        workflowService.getPrintJobStatistics(),
-        workflowService.getShippingStatistics()
-      ]);
+      // Try to load statistics, but don't fail if they're not available
+      let printStats;
+      let shippingStats;
+      
+      try {
+        printStats = await workflowService.getPrintJobStatistics();
+      } catch (err) {
+        console.warn('Failed to load print job statistics:', err);
+        printStats = {
+          queued: 0,
+          assigned: 0,
+          printing: 0,
+          completed: 0,
+          failed: 0,
+          cancelled: 0,
+          total: 0
+        };
+      }
+
+      try {
+        shippingStats = await workflowService.getShippingStatistics();
+      } catch (err) {
+        console.warn('Failed to load shipping statistics:', err);
+        shippingStats = {
+          pending: 0,
+          in_transit: 0,
+          delivered: 0,
+          failed: 0,
+          total: 0
+        };
+      }
 
       // Mock application stats - you can implement this endpoint in the backend
       const applicationStats = {
