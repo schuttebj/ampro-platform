@@ -42,6 +42,7 @@ import {
 } from '@mui/icons-material';
 import { applicationService, workflowService, locationService } from '../../api/services';
 import { Application } from '../../types';
+import api from '../../api/api';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -203,15 +204,22 @@ const ApplicationReview: React.FC = () => {
     try {
       setLoading(true);
       
-      await workflowService.approveApplication(selectedApplication.id, {
+      // Use the simple approval endpoint that should trigger the full workflow
+      const response = await api.post(`/applications/${selectedApplication.id}/approve`, {
         collection_point: collectionPoint
       });
 
+      console.log('Approval response:', response.data);
+      
       handleApprovalDialogClose();
       loadApplications();
       
+      // Show success message
+      console.log(`Application ${selectedApplication.id} approved successfully`);
+      
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to approve application');
+      console.error('Approval error:', err);
     } finally {
       setLoading(false);
     }
