@@ -44,44 +44,7 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import { workflowService, userService } from '../../api/services';
-
-interface PrintJob {
-  id: number;
-  application_id: number;
-  license_id: number;
-  status: string;
-  priority: number;
-  front_pdf_path: string;
-  back_pdf_path: string;
-  combined_pdf_path: string;
-  queued_at: string;
-  assigned_at?: string;
-  started_at?: string;
-  completed_at?: string;
-  assigned_to_user_id?: number;
-  assigned_to_name?: string;
-  printer_name?: string;
-  copies_printed?: number;
-  citizen_name?: string;
-  license_number?: string;
-}
-
-interface User {
-  id: number;
-  username: string;
-  full_name: string;
-  role: string;
-}
-
-interface PrintJobStatistics {
-  queued: number;
-  assigned: number;
-  printing: number;
-  completed: number;
-  failed: number;
-  cancelled: number;
-  total: number;
-}
+import { PrintJob, User, PrintJobStatistics } from '../../types';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -219,7 +182,7 @@ const PrintQueue: React.FC = () => {
 
     try {
       await workflowService.assignPrintJob(selectedPrintJob.id, {
-        user_id: parseInt(assigneeUserId)
+        assigned_to_user_id: parseInt(assigneeUserId)
       });
       
       setAssignDialogOpen(false);
@@ -236,7 +199,7 @@ const PrintQueue: React.FC = () => {
 
     try {
       await workflowService.startPrintJob(selectedPrintJob.id, {
-        user_id: selectedPrintJob.assigned_to_user_id!,
+        started_at: new Date().toISOString(),
         printer_name: selectedPrinter
       });
       
@@ -254,7 +217,8 @@ const PrintQueue: React.FC = () => {
 
     try {
       await workflowService.completePrintJob(selectedPrintJob.id, {
-        user_id: selectedPrintJob.assigned_to_user_id!,
+        completed_at: new Date().toISOString(),
+        success: true,
         copies_printed: copiesCount,
         notes: completionNotes
       });
@@ -304,8 +268,8 @@ const PrintQueue: React.FC = () => {
             <TableRow key={job.id}>
               <TableCell>PJ-{job.id.toString().padStart(4, '0')}</TableCell>
               <TableCell>APP-{job.application_id.toString().padStart(6, '0')}</TableCell>
-              <TableCell>{job.citizen_name || 'Unknown'}</TableCell>
-              <TableCell>{job.license_number || 'Pending'}</TableCell>
+              <TableCell>{'Unknown Citizen'}</TableCell>
+              <TableCell>{'License Pending'}</TableCell>
               <TableCell>
                 <Chip 
                   label={getPriorityLabel(job.priority)} 
@@ -321,12 +285,12 @@ const PrintQueue: React.FC = () => {
                 />
               </TableCell>
               <TableCell>
-                {job.assigned_to_name ? (
+                {job.assigned_to?.full_name ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 24, height: 24 }}>
                       <PersonIcon fontSize="small" />
                     </Avatar>
-                    <Typography variant="body2">{job.assigned_to_name}</Typography>
+                    <Typography variant="body2">{job.assigned_to.full_name}</Typography>
                   </Box>
                 ) : (
                   <Typography variant="body2" color="text.secondary">Unassigned</Typography>
@@ -337,7 +301,7 @@ const PrintQueue: React.FC = () => {
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  {job.status === 'queued' && (
+                  {job.status === 'QUEUED' && (
                     <Tooltip title="Assign to Operator">
                       <IconButton 
                         size="small" 
@@ -348,7 +312,7 @@ const PrintQueue: React.FC = () => {
                       </IconButton>
                     </Tooltip>
                   )}
-                  {job.status === 'assigned' && (
+                  {job.status === 'ASSIGNED' && (
                     <Tooltip title="Start Printing">
                       <IconButton 
                         size="small" 
@@ -643,7 +607,7 @@ const PrintQueue: React.FC = () => {
                 Print Job: PJ-{selectedPrintJob.id.toString().padStart(4, '0')}
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Assigned to: {selectedPrintJob.assigned_to_name}
+                Assigned to: {selectedPrintJob.assigned_to?.full_name || 'Unknown'}
               </Typography>
 
               <FormControl fullWidth sx={{ mt: 3 }}>
