@@ -114,13 +114,14 @@ const ApplicationReview: React.FC = () => {
       setLoading(true);
       setError('');
 
-      // Load applications by status
-      const allApplications = await applicationService.getApplications();
+      // Load applications by status - Fixed for PaginatedResponse
+      const allApplicationsResponse = await applicationService.getApplications();
+      const allApplications = allApplicationsResponse.items;
       
-      const pending = allApplications.filter(app => app.status === 'submitted');
-      const underReview = allApplications.filter(app => app.status === 'under_review');
+      const pending = allApplications.filter(app => app.status === 'SUBMITTED');
+      const underReview = allApplications.filter(app => app.status === 'UNDER_REVIEW');
       const completed = allApplications.filter(app => 
-        ['approved', 'license_generated', 'queued_for_printing'].includes(app.status)
+        ['APPROVED', 'LICENSE_GENERATED', 'QUEUED_FOR_PRINTING'].includes(app.status)
       );
 
       setPendingApplications(pending);
@@ -172,8 +173,7 @@ const ApplicationReview: React.FC = () => {
       setLoading(true);
       
       await workflowService.approveApplication(selectedApplication.id, {
-        collection_point: collectionPoint,
-        review_notes: reviewNotes
+        collection_point: collectionPoint
       });
 
       handleApprovalDialogClose();
