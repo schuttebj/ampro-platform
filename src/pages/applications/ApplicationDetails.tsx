@@ -37,6 +37,7 @@ import {
 import { applicationService, workflowService } from '../../api/services';
 import { Application } from '../../types';
 import LicensePreview from '../../components/LicensePreview';
+import api from '../../api/api';
 
 // Status color mapping
 const statusColors: Record<string, "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning"> = {
@@ -56,6 +57,25 @@ const statusColors: Record<string, "default" | "primary" | "secondary" | "error"
   CANCELLED: 'error'
 };
 
+// Application type labels
+const applicationTypeLabels: Record<string, string> = {
+  'new': 'New License',
+  'renewal': 'License Renewal',
+  'replacement': 'Replacement (Lost/Damaged)',
+  'upgrade': 'Category Upgrade',
+  'conversion': 'Foreign License Conversion'
+};
+
+// License category descriptions
+const licenseCategoryDescriptions: Record<string, string> = {
+  'A': 'Category A - Motorcycles',
+  'B': 'Category B - Light Motor Vehicles',
+  'C': 'Category C - Heavy Motor Vehicles',
+  'D': 'Category D - Buses',
+  'EB': 'Category EB - Light Motor Vehicle with Trailer',
+  'EC': 'Category EC - Heavy Motor Vehicle with Trailer'
+};
+
 // Collection points - this should ideally come from a configuration or API
 const COLLECTION_POINTS = [
   'Cape Town Central',
@@ -71,6 +91,7 @@ const ApplicationDetails: React.FC = () => {
   const navigate = useNavigate();
   const [application, setApplication] = useState<Application | null>(null);
   const [citizen, setCitizen] = useState<any>(null);
+  const [location, setLocation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
@@ -96,6 +117,17 @@ const ApplicationDetails: React.FC = () => {
             setCitizen(applicationData.citizen);
           } catch (citizenError) {
             console.error('Error fetching citizen details:', citizenError);
+            // Don't set main error, just log it
+          }
+        }
+
+        // Fetch location data if location_id exists
+        if (applicationData.location_id) {
+          try {
+            const locationResponse = await api.get(`/locations/${applicationData.location_id}`);
+            setLocation(locationResponse.data);
+          } catch (locationError) {
+            console.error('Error fetching location details:', locationError);
             // Don't set main error, just log it
           }
         }
@@ -331,7 +363,15 @@ const ApplicationDetails: React.FC = () => {
                     Applied Category
                   </Typography>
                   <Typography variant="body1">
-                    {application.applied_category}
+                    {licenseCategoryDescriptions[application.applied_category] || application.applied_category}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Application Type
+                  </Typography>
+                  <Typography variant="body1">
+                    {applicationTypeLabels[application.application_type] || application.application_type}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -355,7 +395,7 @@ const ApplicationDetails: React.FC = () => {
                     Collection Point
                   </Typography>
                   <Typography variant="body1">
-                    {application.collection_point || 'Not assigned'}
+                    {location ? `${location.name} (${location.code}) - ${location.city}` : 'Not assigned'}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -366,9 +406,71 @@ const ApplicationDetails: React.FC = () => {
                     {application.preferred_collection_date ? formatDate(application.preferred_collection_date) : 'Not specified'}
                   </Typography>
                 </Grid>
+                {application.previous_license_id && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Previous License ID
+                    </Typography>
+                    <Typography variant="body1">
+                      {application.previous_license_id}
+                    </Typography>
+                  </Grid>
+                )}
+                {application.approved_license_id && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Approved License ID
+                    </Typography>
+                    <Typography variant="body1">
+                      {application.approved_license_id}
+                    </Typography>
+                  </Grid>
+                )}
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Created At
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatDate(application.created_at)}
+                  </Typography>
+                </Grid>
+                {application.review_date && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Review Date
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDate(application.review_date)}
+                    </Typography>
+                  </Grid>
+                )}
+                {application.reviewer && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Reviewed By
+                    </Typography>
+                    <Typography variant="body1">
+                      {application.reviewer.first_name} {application.reviewer.last_name}
+                    </Typography>
+                  </Grid>
+                )}
               </Grid>
 
-              <Divider sx={{ my: 2 }} />
+              {/* Notes Section */}
+              {application.notes && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Application Notes
+                  </Typography>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    <Typography variant="body1">
+                      {application.notes}
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+
+              <Divider sx={{ my: 3 }} />
 
               {/* Verification Status */}
               <Typography variant="h6" gutterBottom>
@@ -379,11 +481,11 @@ const ApplicationDetails: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Chip 
                       label="Documents" 
-                      color={application.documents_verified ? 'success' : 'warning'}
+                      color={application.documents_verified ? 'success' : application.documents_verified === false ? 'error' : 'warning'}
                       size="small"
                     />
                     <Typography variant="body2">
-                      {application.documents_verified ? 'Verified' : 'Pending'}
+                      {application.documents_verified === true ? 'Verified' : application.documents_verified === false ? 'Not Verified' : 'Pending'}
                     </Typography>
                   </Box>
                 </Grid>
@@ -391,11 +493,11 @@ const ApplicationDetails: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Chip 
                       label="Medical" 
-                      color={application.medical_verified ? 'success' : 'warning'}
+                      color={application.medical_verified ? 'success' : application.medical_verified === false ? 'error' : 'warning'}
                       size="small"
                     />
                     <Typography variant="body2">
-                      {application.medical_verified ? 'Verified' : 'Pending'}
+                      {application.medical_verified === true ? 'Verified' : application.medical_verified === false ? 'Not Verified' : 'Pending'}
                     </Typography>
                   </Box>
                 </Grid>
@@ -403,45 +505,58 @@ const ApplicationDetails: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Chip 
                       label="Payment" 
-                      color={application.payment_verified ? 'success' : 'warning'}
+                      color={application.payment_verified ? 'success' : application.payment_verified === false ? 'error' : 'warning'}
                       size="small"
                     />
                     <Typography variant="body2">
-                      {application.payment_verified ? 'Verified' : 'Pending'}
+                      {application.payment_verified === true ? 'Verified' : application.payment_verified === false ? 'Not Verified' : 'Pending'}
                     </Typography>
                   </Box>
                 </Grid>
               </Grid>
 
-              {application.payment_amount && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Payment Amount
+              {/* Payment Information */}
+              {(application.payment_amount || application.payment_reference) && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Payment Information
                   </Typography>
-                  <Typography variant="body1">
-                    R{(application.payment_amount / 100).toFixed(2)}
-                  </Typography>
-                  {application.payment_reference && (
-                    <>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
-                        Payment Reference
-                      </Typography>
-                      <Typography variant="body1">
-                        {application.payment_reference}
-                      </Typography>
-                    </>
-                  )}
+                  <Grid container spacing={2}>
+                    {application.payment_amount && (
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Payment Amount
+                        </Typography>
+                        <Typography variant="body1">
+                          R{(application.payment_amount / 100).toFixed(2)}
+                        </Typography>
+                      </Grid>
+                    )}
+                    {application.payment_reference && (
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Payment Reference
+                        </Typography>
+                        <Typography variant="body1">
+                          {application.payment_reference}
+                        </Typography>
+                      </Grid>
+                    )}
+                  </Grid>
                 </Box>
               )}
 
+              {/* Review Notes */}
               {application.review_notes && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
                     Review Notes
                   </Typography>
-                  <Typography variant="body1">
-                    {application.review_notes}
-                  </Typography>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    <Typography variant="body1">
+                      {application.review_notes}
+                    </Typography>
+                  </Paper>
                 </Box>
               )}
             </CardContent>
@@ -460,7 +575,7 @@ const ApplicationDetails: React.FC = () => {
                       Full Name
                     </Typography>
                     <Typography variant="body1">
-                      {application.citizen.first_name} {application.citizen.last_name}
+                      {application.citizen.first_name} {application.citizen.middle_name ? `${application.citizen.middle_name} ` : ''}{application.citizen.last_name}
                     </Typography>
                   </Grid>
                   <Grid item xs={12}>
@@ -479,17 +594,94 @@ const ApplicationDetails: React.FC = () => {
                       {formatDate(application.citizen.date_of_birth)}
                     </Typography>
                   </Grid>
+                  {application.citizen.gender && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Gender
+                      </Typography>
+                      <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
+                        {application.citizen.gender}
+                      </Typography>
+                    </Grid>
+                  )}
+                  {application.citizen.nationality && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Nationality
+                      </Typography>
+                      <Typography variant="body1">
+                        {application.citizen.nationality}
+                      </Typography>
+                    </Grid>
+                  )}
+                  {application.citizen.marital_status && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Marital Status
+                      </Typography>
+                      <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
+                        {application.citizen.marital_status}
+                      </Typography>
+                    </Grid>
+                  )}
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Contact
+                      Contact Information
                     </Typography>
                     <Typography variant="body2">
-                      {application.citizen.phone_number}
+                      📞 {application.citizen.phone_number}
                     </Typography>
                     <Typography variant="body2">
-                      {application.citizen.email}
+                      ✉️ {application.citizen.email}
                     </Typography>
                   </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Address
+                    </Typography>
+                    <Typography variant="body2">
+                      {application.citizen.address_line1}
+                      {application.citizen.address_line2 && (
+                        <><br />{application.citizen.address_line2}</>
+                      )}
+                      <br />
+                      {application.citizen.city}, {application.citizen.state_province}
+                      <br />
+                      {application.citizen.postal_code}
+                      {application.citizen.country && application.citizen.country !== 'South Africa' && (
+                        <><br />{application.citizen.country}</>
+                      )}
+                    </Typography>
+                  </Grid>
+                  {application.citizen.birth_place && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Place of Birth
+                      </Typography>
+                      <Typography variant="body2">
+                        {application.citizen.birth_place}
+                      </Typography>
+                    </Grid>
+                  )}
+                  {application.citizen.photo_url && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Photo
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <img 
+                          src={application.citizen.photo_url}
+                          alt="Citizen Photo"
+                          style={{ 
+                            maxWidth: '100%', 
+                            maxHeight: '200px', 
+                            borderRadius: '8px',
+                            border: '1px solid #ddd'
+                          }}
+                        />
+                      </Box>
+                    </Grid>
+                  )}
                 </Grid>
               ) : (
                 <Typography variant="body2" color="text.secondary">
