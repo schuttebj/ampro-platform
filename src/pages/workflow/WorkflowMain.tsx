@@ -168,13 +168,13 @@ const WorkflowMain: React.FC = () => {
 
   const getPriorityAlerts = () => {
     const alerts = [];
-    if (stats?.print_jobs.queued > 10) {
+    if (stats?.print_jobs?.queued && stats.print_jobs.queued > 10) {
       alerts.push('High print queue volume - consider assigning more printers');
     }
-    if (stats?.shipping.pending > 5) {
+    if (stats?.shipping?.pending && stats.shipping.pending > 5) {
       alerts.push('Pending shipments require attention');
     }
-    if (stats?.applications.pending_review > 15) {
+    if (stats?.applications?.pending_review && stats.applications.pending_review > 15) {
       alerts.push('Many applications awaiting review');
     }
     return alerts;
