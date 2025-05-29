@@ -280,13 +280,24 @@ const ApplicationForm: React.FC = () => {
 
   // Set selected citizen when both application data and citizens array are available
   useEffect(() => {
-    if (applicationData && applicationData.citizen_id && citizens.length > 0) {
-      const citizen = citizens.find((c: any) => c.id === applicationData.citizen_id);
-      if (citizen) {
-        setSelectedCitizen(citizen);
-      }
+    if (applicationData && applicationData.citizen) {
+      // Use the citizen data that comes with the application directly
+      const citizenWithFullName = {
+        ...applicationData.citizen,
+        full_name: `${applicationData.citizen.first_name} ${applicationData.citizen.last_name} (ID: ${applicationData.citizen.id_number})`
+      };
+      setSelectedCitizen(citizenWithFullName);
+      
+      // Also add this citizen to the citizens array if it's not already there
+      setCitizens(prevCitizens => {
+        const exists = prevCitizens.find(c => c.id === applicationData.citizen.id);
+        if (!exists) {
+          return [citizenWithFullName, ...prevCitizens];
+        }
+        return prevCitizens;
+      });
     }
-  }, [applicationData, citizens]);
+  }, [applicationData]);
 
   // Set selected location when both application data and locations array are available
   useEffect(() => {
