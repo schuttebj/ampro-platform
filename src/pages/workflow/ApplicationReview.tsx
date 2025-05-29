@@ -263,7 +263,7 @@ const ApplicationReview: React.FC = () => {
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
-                    {application.status === 'SUBMITTED' && (
+                    {application.status.toLowerCase() === 'submitted' && (
                       <Tooltip title={canApprove(application) ? "Approve Application" : "Complete verification first"}>
                         <span>
                           <IconButton 

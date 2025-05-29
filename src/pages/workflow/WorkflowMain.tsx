@@ -29,7 +29,7 @@ import {
   Refresh as RefreshIcon,
   ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
-import { workflowService, isoComplianceService } from '../../api/services';
+import { workflowService, isoComplianceService, applicationService } from '../../api/services';
 
 interface WorkflowStats {
   applications: {
@@ -105,13 +105,36 @@ const WorkflowMain: React.FC = () => {
         };
       }
 
-      // Mock application stats - you can implement this endpoint in the backend
-      const applicationStats = {
-        pending_review: 12,
-        under_review: 5,
-        approved: 8,
-        total: 25
-      };
+      // Load real application stats from the API
+      let applicationStats;
+      try {
+        // Get pending applications
+        const pendingApps = await applicationService.getPendingApplications();
+        // Get all applications to count other statuses
+        const allApplications = await applicationService.getApplications();
+        const allAppsArray = Array.isArray(allApplications) ? allApplications : allApplications.items || [];
+        
+        const pendingCount = Array.isArray(pendingApps) ? pendingApps.length : 0;
+        const underReviewCount = allAppsArray.filter(app => app.status?.toLowerCase() === 'under_review').length;
+        const approvedCount = allAppsArray.filter(app => 
+          ['approved', 'license_generated', 'queued_for_printing'].includes(app.status?.toLowerCase())
+        ).length;
+        
+        applicationStats = {
+          pending_review: pendingCount,
+          under_review: underReviewCount,
+          approved: approvedCount,
+          total: pendingCount + underReviewCount + approvedCount
+        };
+      } catch (err) {
+        console.warn('Failed to load application statistics:', err);
+        applicationStats = {
+          pending_review: 0,
+          under_review: 0,
+          approved: 0,
+          total: 0
+        };
+      }
 
       // Mock collection stats - you can implement this endpoint
       const collectionStats = {
