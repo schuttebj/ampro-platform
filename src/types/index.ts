@@ -3,6 +3,8 @@ export interface User {
   id: number;
   username: string;
   email: string;
+  first_name?: string;
+  last_name?: string;
   full_name: string;
   role: 'ADMIN' | 'MANAGER' | 'OFFICER' | 'PRINTER' | 'VIEWER';
   is_active: boolean;
