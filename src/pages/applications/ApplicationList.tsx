@@ -82,12 +82,17 @@ const ApplicationList: React.FC = () => {
       }
       
       if (query && query.trim()) {
-        // If query looks like an application ID (number only)
-        if (/^\d+$/.test(query.trim())) {
-          params.id = query.trim();
+        const trimmedQuery = query.trim();
+        
+        // If query is purely numeric, search both as application ID and citizen
+        if (/^\d+$/.test(trimmedQuery)) {
+          // Send as both application ID and citizen search
+          // Backend will try application ID first, then citizen search if not found
+          params.id = trimmedQuery;
+          params.citizen_search = trimmedQuery;
         } else {
-          // Search by citizen name - we'll need to implement this on backend
-          params.citizen_search = query.trim();
+          // For non-numeric queries, search by citizen name only
+          params.citizen_search = trimmedQuery;
         }
       }
       
@@ -197,7 +202,7 @@ const ApplicationList: React.FC = () => {
             <TextField
               fullWidth
               variant="outlined"
-              placeholder="Search by ID or citizen name"
+              placeholder="Search by application ID, citizen ID, or citizen name"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
