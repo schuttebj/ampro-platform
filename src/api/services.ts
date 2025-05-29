@@ -578,4 +578,27 @@ export const healthService = {
     const response = await api.get('/');
     return response.data;
   }
+};
+
+// Location Services
+export const locationService = {
+  getLocations: async (): Promise<any[]> => {
+    const response = await api.get('/locations/');
+    return response.data;
+  },
+
+  getActiveLocations: async (): Promise<any[]> => {
+    const response = await api.get('/locations/active');
+    return response.data;
+  },
+
+  getLocationsAcceptingCollections: async (): Promise<any[]> => {
+    const response = await api.get('/locations/accepting-collections');
+    return response.data;
+  },
+
+  getLocation: async (locationId: number): Promise<any> => {
+    const response = await api.get(`/locations/${locationId}`);
+    return response.data;
+  }
 }; 

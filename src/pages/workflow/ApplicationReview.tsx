@@ -40,7 +40,7 @@ import {
   FilterList as FilterIcon,
   Assignment as AssignmentIcon
 } from '@mui/icons-material';
-import { applicationService, workflowService } from '../../api/services';
+import { applicationService, workflowService, locationService } from '../../api/services';
 import { Application } from '../../types';
 
 interface TabPanelProps {
@@ -64,6 +64,15 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+interface Location {
+  id: number;
+  name: string;
+  code: string;
+  city: string;
+  is_active: boolean;
+  accepts_collections: boolean;
+}
+
 const ApplicationReview: React.FC = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
@@ -81,19 +90,24 @@ const ApplicationReview: React.FC = () => {
   const [collectionPoint, setCollectionPoint] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
   
-  // Available collection points
-  const collectionPoints = [
-    'Main Office - Johannesburg',
-    'Cape Town Branch',
-    'Durban Branch',
-    'Pretoria Branch',
-    'Port Elizabeth Branch',
-    'Bloemfontein Branch'
-  ];
+  // Available collection points - loaded from API
+  const [availableLocations, setAvailableLocations] = useState<Location[]>([]);
 
   useEffect(() => {
     loadApplications();
+    loadCollectionLocations();
   }, []);
+
+  const loadCollectionLocations = async () => {
+    try {
+      const locations = await locationService.getLocationsAcceptingCollections();
+      setAvailableLocations(locations);
+    } catch (err) {
+      console.error('Error loading collection locations:', err);
+      // Fallback to empty array if API fails
+      setAvailableLocations([]);
+    }
+  };
 
   const loadApplications = async () => {
     try {
@@ -146,11 +160,23 @@ const ApplicationReview: React.FC = () => {
     }
   };
 
-  const handleApprovalDialogOpen = (application: Application) => {
+  const handleApprovalDialogOpen = async (application: Application) => {
     setSelectedApplication(application);
-    setCollectionPoint('');
     setReviewNotes('');
     setApprovalDialogOpen(true);
+    
+    // Auto-populate collection point if application has a location_id
+    if (application.location_id) {
+      try {
+        const location = await locationService.getLocation(application.location_id);
+        setCollectionPoint(location.name);
+      } catch (err) {
+        console.error('Error loading application location:', err);
+        setCollectionPoint('');
+      }
+    } else {
+      setCollectionPoint('');
+    }
   };
 
   const handleApprovalDialogClose = () => {
@@ -451,9 +477,9 @@ const ApplicationReview: React.FC = () => {
                   label="Collection Point"
                   onChange={(e) => setCollectionPoint(e.target.value)}
                 >
-                  {collectionPoints.map((point) => (
-                    <MenuItem key={point} value={point}>
-                      {point}
+                  {availableLocations.map((location) => (
+                    <MenuItem key={location.id} value={location.name}>
+                      {location.name}
                     </MenuItem>
                   ))}
                 </Select>

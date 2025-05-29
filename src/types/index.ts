@@ -145,6 +145,9 @@ export interface Application {
   payment_amount?: number;
   payment_reference?: string;
   
+  // Location assignment
+  location_id?: number;
+  
   // Collection details
   collection_point?: string;
   preferred_collection_date?: string;
