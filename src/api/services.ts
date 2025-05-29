@@ -302,20 +302,21 @@ export const applicationService = {
 export const workflowService = {
   // Application Workflow
   approveApplication: async (applicationId: number, approvalData: ApplicationApprovalRequest): Promise<any> => {
-    // First, move application to UNDER_REVIEW status if it's in SUBMITTED status
-    try {
-      await api.put(`/applications/${applicationId}`, {
-        status: 'UNDER_REVIEW'
-      });
-    } catch (err) {
-      console.log('Application might already be in review status, continuing...');
+    // Use the simple approval endpoint which works reliably
+    const approvalResponse = await api.post(`/applications/${applicationId}/approve`);
+    
+    // If successful and we have collection point, update the license
+    if (approvalResponse.data.license_id && approvalData.collection_point) {
+      try {
+        await api.put(`/licenses/${approvalResponse.data.license_id}`, {
+          collection_point: approvalData.collection_point
+        });
+      } catch (err) {
+        console.warn('License updated but failed to set collection point:', err);
+      }
     }
     
-    // Then approve using the workflow endpoint with collection_point
-    const response = await api.post(`/workflow/applications/${applicationId}/approve`, null, {
-      params: { collection_point: approvalData.collection_point }
-    });
-    return response.data;
+    return approvalResponse.data;
   },
 
   // Print Job Management
