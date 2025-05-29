@@ -251,15 +251,51 @@ const ApplicationForm: React.FC = () => {
         const response = await api.get(`/applications/${id}`);
         const applicationData = response.data;
         
-        // Format the application date
-        const formattedData = {
-          ...applicationData,
-          application_date: applicationData.application_date ? 
-            new Date(applicationData.application_date).toISOString().split('T')[0] : 
-            new Date().toISOString().split('T')[0]
+        console.log('Raw API response:', applicationData);
+        
+        // Format the application date properly
+        let formattedDate = new Date().toISOString().split('T')[0]; // default to today
+        if (applicationData.application_date) {
+          try {
+            formattedDate = new Date(applicationData.application_date).toISOString().split('T')[0];
+          } catch (dateError) {
+            console.warn('Error parsing application date:', applicationData.application_date);
+          }
+        }
+        
+        // Map API response to form fields with explicit field mapping
+        const formattedData: ApplicationFormData = {
+          citizen_id: applicationData.citizen_id || 0,
+          applied_category: applicationData.applied_category || '',
+          application_type: applicationData.application_type || 'new',
+          previous_license_id: applicationData.previous_license_id || null,
+          location_id: applicationData.location_id || null,
+          status: applicationData.status || 'submitted',
+          application_date: formattedDate,
+          notes: applicationData.notes || '',
+          documents_verified: applicationData.documents_verified,
+          medical_verified: applicationData.medical_verified,
+          payment_verified: applicationData.payment_verified,
+          payment_amount: applicationData.payment_amount || null,
+          payment_reference: applicationData.payment_reference || null,
+          collection_point: applicationData.collection_point || null,
+          review_notes: applicationData.review_notes || null
         };
         
+        console.log('Formatted data for form:', formattedData);
+        
+        // Reset the form with the formatted data
         reset(formattedData);
+        
+        // Also set the citizen selection for the autocomplete
+        if (applicationData.citizen && applicationData.citizen_id) {
+          const citizenWithFullName = {
+            ...applicationData.citizen,
+            full_name: `${applicationData.citizen.first_name} ${applicationData.citizen.last_name} (ID: ${applicationData.citizen.id_number})`
+          };
+          setSelectedCitizen(citizenWithFullName);
+          console.log('Set selected citizen:', citizenWithFullName);
+        }
         
       } catch (error: any) {
         console.error('Error fetching application:', error);
@@ -273,41 +309,6 @@ const ApplicationForm: React.FC = () => {
       fetchApplication();
     }
   }, [id, reset, isEditMode]);
-
-  // Separate effect to handle citizen and location selection after data is loaded
-  useEffect(() => {
-    const updateSelections = async () => {
-      if (!isEditMode || !id) return;
-      
-      try {
-        const response = await api.get(`/applications/${id}`);
-        const applicationData = response.data;
-        
-        // Find and set the selected citizen for the Autocomplete
-        if (applicationData.citizen_id && citizens.length > 0) {
-          const citizen = citizens.find((c: any) => c.id === applicationData.citizen_id);
-          if (citizen) {
-            setSelectedCitizen(citizen);
-          }
-        }
-
-        // Find and set the selected location for the dropdown
-        if (applicationData.location_id && locations.length > 0) {
-          const location = locations.find((l: any) => l.id === applicationData.location_id);
-          if (location) {
-            setSelectedLocation(location);
-          }
-        }
-      } catch (error: any) {
-        console.error('Error updating selections:', error);
-      }
-    };
-
-    // Only run when citizens and locations are loaded
-    if (citizens.length > 0 && locations.length > 0) {
-      updateSelections();
-    }
-  }, [citizens, locations, id, isEditMode]);
 
   const onSubmit = async (data: ApplicationFormData) => {
     try {
