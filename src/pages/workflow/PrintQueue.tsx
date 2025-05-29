@@ -323,7 +323,7 @@ const PrintQueue: React.FC = () => {
                       </IconButton>
                     </Tooltip>
                   )}
-                  {job.status === 'printing' && (
+                  {job.status === 'PRINTING' && (
                     <>
                       <Tooltip title="Print License Card">
                         <IconButton 
