@@ -27,17 +27,26 @@ export interface Citizen {
   id: number;
   id_number: string;
   first_name: string;
+  middle_name?: string;
   last_name: string;
   date_of_birth: string;
-  gender: 'M' | 'F' | 'Other';
+  gender: 'M' | 'F' | 'male' | 'female' | 'Other';
   nationality: string;
+  marital_status?: string;
+  birth_place?: string;
   phone_number?: string;
   email?: string;
-  address_line_1: string;
-  address_line_2?: string;
+  address_line1: string;
+  address_line2?: string;
   city: string;
-  province: string;
+  state_province: string;
   postal_code: string;
+  country?: string;
+  photo_url?: string;
+  processed_photo_path?: string;
+  stored_photo_path?: string;
+  photo_uploaded_at?: string;
+  photo_processed_at?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -123,6 +132,7 @@ export interface Application {
   citizen_id: number;
   citizen?: Citizen;
   applied_category: 'A' | 'B' | 'C' | 'D' | 'EB' | 'EC';
+  application_type: 'new' | 'renewal' | 'replacement' | 'upgrade' | 'conversion';
   status: 'SUBMITTED' | 'UNDER_REVIEW' | 'PENDING_DOCUMENTS' | 'PENDING_PAYMENT' | 
           'APPROVED' | 'LICENSE_GENERATED' | 'QUEUED_FOR_PRINTING' | 'PRINTING' | 
           'PRINTED' | 'SHIPPED' | 'READY_FOR_COLLECTION' | 'COMPLETED' | 
@@ -131,6 +141,10 @@ export interface Application {
   // Application details
   application_date: string;
   last_updated: string;
+  notes?: string;
+  
+  // For renewals/replacements, reference the previous license
+  previous_license_id?: number;
   
   // Review information
   reviewed_by?: number;
@@ -466,17 +480,21 @@ export interface PaginatedResponse<T> {
 export interface CitizenFormData {
   id_number: string;
   first_name: string;
+  middle_name?: string;
   last_name: string;
   date_of_birth: string;
   gender: string;
   nationality: string;
+  marital_status?: string;
+  birth_place?: string;
   phone_number?: string;
   email?: string;
-  address_line_1: string;
-  address_line_2?: string;
+  address_line1: string;
+  address_line2?: string;
   city: string;
-  province: string;
+  state_province: string;
   postal_code: string;
+  country?: string;
 }
 
 export interface LicenseFormData {
