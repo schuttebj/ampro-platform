@@ -81,7 +81,6 @@ const ApplicationReview: React.FC = () => {
   
   // Applications data
   const [pendingApplications, setPendingApplications] = useState<Application[]>([]);
-  const [underReviewApplications, setUnderReviewApplications] = useState<Application[]>([]);
   const [completedApplications, setCompletedApplications] = useState<Application[]>([]);
   
   // Dialog state
@@ -123,17 +122,29 @@ const ApplicationReview: React.FC = () => {
       // Check if the response is an array for all applications
       const allAppsArray = Array.isArray(allApplications) ? allApplications : allApplications.items || [];
       
-      // Pending applications come from the dedicated endpoint
-      const pending = Array.isArray(pendingApps) ? pendingApps : [];
+      // Pending applications include both SUBMITTED and UNDER_REVIEW statuses
+      // Get from both API and filter to ensure we capture all pending statuses
+      let pending = Array.isArray(pendingApps) ? pendingApps : [];
       
-      // Filter other statuses from all applications
-      const underReview = allAppsArray.filter(app => app.status === 'UNDER_REVIEW');
+      // Also include UNDER_REVIEW applications as pending
+      const underReviewApps = allAppsArray.filter(app => 
+        app.status?.toUpperCase() === 'UNDER_REVIEW'
+      );
+      
+      // Merge and deduplicate pending applications
+      const pendingIds = new Set(pending.map(app => app.id));
+      underReviewApps.forEach(app => {
+        if (!pendingIds.has(app.id)) {
+          pending.push(app);
+        }
+      });
+      
+      // Completed applications are those approved, generated, or further along
       const completed = allAppsArray.filter(app => 
-        ['APPROVED', 'LICENSE_GENERATED', 'QUEUED_FOR_PRINTING'].includes(app.status)
+        ['APPROVED', 'LICENSE_GENERATED', 'QUEUED_FOR_PRINTING', 'PRINTING', 'PRINTED', 'SHIPPED', 'READY_FOR_COLLECTION', 'COMPLETED'].includes(app.status?.toUpperCase())
       );
 
       setPendingApplications(pending);
-      setUnderReviewApplications(underReview);
       setCompletedApplications(completed);
 
     } catch (err: any) {
@@ -360,18 +371,6 @@ const ApplicationReview: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography variant="h6" color="warning.main">
-                {underReviewApplications.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Under Review
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
               <Typography variant="h6" color="success.main">
                 {completedApplications.length}
               </Typography>
@@ -385,7 +384,7 @@ const ApplicationReview: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" color="primary.main">
-                {pendingApplications.length + underReviewApplications.length + completedApplications.length}
+                {pendingApplications.length + completedApplications.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Total Applications
@@ -402,13 +401,6 @@ const ApplicationReview: React.FC = () => {
             label={
               <Badge badgeContent={pendingApplications.length} color="info">
                 Pending Review
-              </Badge>
-            } 
-          />
-          <Tab 
-            label={
-              <Badge badgeContent={underReviewApplications.length} color="warning">
-                Under Review
               </Badge>
             } 
           />
@@ -432,14 +424,6 @@ const ApplicationReview: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        {underReviewApplications.length === 0 ? (
-          <Alert severity="info">No applications under review</Alert>
-        ) : (
-          renderApplicationTable(underReviewApplications)
-        )}
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
         {completedApplications.length === 0 ? (
           <Alert severity="info">No completed applications</Alert>
         ) : (

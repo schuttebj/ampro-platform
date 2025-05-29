@@ -34,7 +34,6 @@ import { workflowService, isoComplianceService, applicationService } from '../..
 interface WorkflowStats {
   applications: {
     pending_review: number;
-    under_review: number;
     approved: number;
     total: number;
   };
@@ -114,23 +113,26 @@ const WorkflowMain: React.FC = () => {
         const allApplications = await applicationService.getApplications();
         const allAppsArray = Array.isArray(allApplications) ? allApplications : allApplications.items || [];
         
-        const pendingCount = Array.isArray(pendingApps) ? pendingApps.length : 0;
+        // Include both SUBMITTED and UNDER_REVIEW as pending
+        let pendingCount = Array.isArray(pendingApps) ? pendingApps.length : 0;
         const underReviewCount = allAppsArray.filter(app => app.status?.toLowerCase() === 'under_review').length;
+        
+        // Total pending includes both submitted and under review
+        const totalPendingCount = pendingCount + underReviewCount;
+        
         const approvedCount = allAppsArray.filter(app => 
-          ['approved', 'license_generated', 'queued_for_printing'].includes(app.status?.toLowerCase())
+          ['approved', 'license_generated', 'queued_for_printing', 'printing', 'printed', 'shipped', 'ready_for_collection', 'completed'].includes(app.status?.toLowerCase())
         ).length;
         
         applicationStats = {
-          pending_review: pendingCount,
-          under_review: underReviewCount,
+          pending_review: totalPendingCount,
           approved: approvedCount,
-          total: pendingCount + underReviewCount + approvedCount
+          total: totalPendingCount + approvedCount
         };
       } catch (err) {
         console.warn('Failed to load application statistics:', err);
         applicationStats = {
           pending_review: 0,
-          under_review: 0,
           approved: 0,
           total: 0
         };

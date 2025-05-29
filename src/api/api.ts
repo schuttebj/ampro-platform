@@ -53,26 +53,22 @@ api.interceptors.response.use(
     
     // Only handle 401 errors, and don't retry if we've already tried once
     if (error.response?.status === 401 && !originalRequest._retry) {
-      console.log("Handling 401 error with token refresh");
+      console.log("Token expired or invalid - redirecting to login");
       originalRequest._retry = true;
       
-      try {
-        // Get the access token - we may not need to refresh as the API may not support this
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) {
-          console.log("No access token found, redirecting to login");
-          window.location.href = '/login';
-          return Promise.reject(error);
-        }
-        
-        // Set the token in the header and retry the request
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        console.error("Error during auth handling:", refreshError);
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
+      // Clear all stored tokens immediately
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      delete api.defaults.headers.common['Authorization'];
+      
+      // Redirect to login page
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+    
+    // Handle other authentication-related errors
+    if (error.response?.status === 403) {
+      console.warn("Access forbidden - insufficient permissions");
     }
     
     return Promise.reject(error);
