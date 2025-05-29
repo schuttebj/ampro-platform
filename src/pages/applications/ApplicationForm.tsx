@@ -23,7 +23,15 @@ import {
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import api from '../../api/api';
-import { debounce } from 'lodash';
+
+// Custom debounce function
+const debounce = (func: Function, delay: number) => {
+  let timeoutId: number;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(null, args), delay) as any;
+  };
+};
 
 // Define the application form data interface
 interface ApplicationFormData {
