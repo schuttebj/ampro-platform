@@ -32,6 +32,14 @@ import Transactions from './pages/Transactions';
 import Reports from './pages/Reports';
 import LocationManagement from './pages/admin/LocationManagement';
 
+// New Workflow Pages
+import WorkflowMain from './pages/workflow/WorkflowMain';
+import ApplicationReview from './pages/workflow/ApplicationReview';
+import PrintQueue from './pages/workflow/PrintQueue';
+import ShippingDashboard from './pages/workflow/ShippingDashboard';
+import CollectionDashboard from './pages/workflow/CollectionDashboard';
+import WorkflowAnalytics from './pages/workflow/WorkflowAnalytics';
+
 // Create the query client
 const queryClient = new QueryClient();
 
@@ -103,10 +111,22 @@ const App: React.FC = () => {
                   <Route path="/licenses/:id/edit" element={<LicenseForm />} />
                   <Route path="/licenses/new" element={<LicenseForm />} />
                   
-                  {/* Workflow Management */}
-                  <Route path="/workflow" element={<WorkflowDashboard />} />
+                  {/* Workflow Management - Main Dashboard */}
+                  <Route path="/workflow" element={<WorkflowMain />} />
                   
-                  {/* New implemented pages */}
+                  {/* New Comprehensive Workflow Routes */}
+                  <Route path="/workflow/main" element={<WorkflowMain />} />
+                  <Route path="/workflow/applications" element={<ApplicationReview />} />
+                  <Route path="/workflow/applications/pending" element={<ApplicationReview />} />
+                  <Route path="/workflow/print-queue" element={<PrintQueue />} />
+                  <Route path="/workflow/shipping" element={<ShippingDashboard />} />
+                  <Route path="/workflow/collection" element={<CollectionDashboard />} />
+                  <Route path="/workflow/analytics" element={<WorkflowAnalytics />} />
+                  
+                  {/* Legacy Workflow Dashboard */}
+                  <Route path="/workflow/legacy" element={<WorkflowDashboard />} />
+                  
+                  {/* Other existing routes */}
                   <Route path="/transactions" element={<Transactions />} />
                   <Route path="/reports" element={<Reports />} />
                   
