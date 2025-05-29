@@ -302,7 +302,9 @@ export const applicationService = {
 export const workflowService = {
   // Application Workflow
   approveApplication: async (applicationId: number, approvalData: ApplicationApprovalRequest): Promise<any> => {
-    const response = await api.post(`/workflow/applications/${applicationId}/approve`, approvalData);
+    const response = await api.post(`/workflow/applications/${applicationId}/approve`, null, {
+      params: { collection_point: approvalData.collection_point }
+    });
     return response.data;
   },
 
