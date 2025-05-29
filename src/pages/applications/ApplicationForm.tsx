@@ -161,6 +161,9 @@ const ApplicationForm: React.FC = () => {
     defaultValues
   });
 
+  // Store application data for setting selections after arrays load
+  const [applicationData, setApplicationData] = useState<any>(null);
+
   // Fetch all citizens for the dropdown
   useEffect(() => {
     const fetchCitizens = async () => {
@@ -231,21 +234,11 @@ const ApplicationForm: React.FC = () => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        // Try the correct endpoint for collections
-        const response = await api.get('/locations/accepting-collections');
+        const response = await api.get('/locations/accepting-applications');
         setLocations(response.data);
-        console.log('Loaded locations:', response.data);
       } catch (error: any) {
         console.error('Error fetching locations:', error);
-        // Try fallback endpoint
-        try {
-          const fallbackResponse = await api.get('/locations/');
-          const activeLocations = fallbackResponse.data.filter((loc: any) => loc.is_active);
-          setLocations(activeLocations);
-          console.log('Loaded fallback locations:', activeLocations);
-        } catch (fallbackError) {
-          console.error('Error with fallback locations:', fallbackError);
-        }
+        // Don't set error as this is not critical
       }
     };
     fetchLocations();
@@ -259,53 +252,18 @@ const ApplicationForm: React.FC = () => {
         setError('');
         
         const response = await api.get(`/applications/${id}`);
-        const applicationData = response.data;
+        const appData = response.data;
         
-        console.log('Raw API response:', applicationData);
-        
-        // Format the application date properly
-        let formattedDate = new Date().toISOString().split('T')[0]; // default to today
-        if (applicationData.application_date) {
-          try {
-            formattedDate = new Date(applicationData.application_date).toISOString().split('T')[0];
-          } catch (dateError) {
-            console.warn('Error parsing application date:', applicationData.application_date);
-          }
-        }
-        
-        // Map API response to form fields with explicit field mapping
-        const formattedData: ApplicationFormData = {
-          citizen_id: applicationData.citizen_id || 0,
-          applied_category: applicationData.applied_category || '',
-          application_type: applicationData.application_type || 'new',
-          previous_license_id: applicationData.previous_license_id || null,
-          location_id: applicationData.location_id || null,
-          status: applicationData.status || 'submitted',
-          application_date: formattedDate,
-          notes: applicationData.notes || '',
-          documents_verified: applicationData.documents_verified,
-          medical_verified: applicationData.medical_verified,
-          payment_verified: applicationData.payment_verified,
-          payment_amount: applicationData.payment_amount || null,
-          payment_reference: applicationData.payment_reference || null,
-          collection_point: applicationData.collection_point || null,
-          review_notes: applicationData.review_notes || null
+        // Format the application date
+        const formattedData = {
+          ...appData,
+          application_date: appData.application_date ? 
+            new Date(appData.application_date).toISOString().split('T')[0] : 
+            new Date().toISOString().split('T')[0]
         };
         
-        console.log('Formatted data for form:', formattedData);
-        
-        // Reset the form with the formatted data
         reset(formattedData);
-        
-        // Also set the citizen selection for the autocomplete
-        if (applicationData.citizen && applicationData.citizen_id) {
-          const citizenWithFullName = {
-            ...applicationData.citizen,
-            full_name: `${applicationData.citizen.first_name} ${applicationData.citizen.last_name} (ID: ${applicationData.citizen.id_number})`
-          };
-          setSelectedCitizen(citizenWithFullName);
-          console.log('Set selected citizen:', citizenWithFullName);
-        }
+        setApplicationData(appData); // Store for later use when arrays are loaded
         
       } catch (error: any) {
         console.error('Error fetching application:', error);
@@ -319,6 +277,26 @@ const ApplicationForm: React.FC = () => {
       fetchApplication();
     }
   }, [id, reset, isEditMode]);
+
+  // Set selected citizen when both application data and citizens array are available
+  useEffect(() => {
+    if (applicationData && applicationData.citizen_id && citizens.length > 0) {
+      const citizen = citizens.find((c: any) => c.id === applicationData.citizen_id);
+      if (citizen) {
+        setSelectedCitizen(citizen);
+      }
+    }
+  }, [applicationData, citizens]);
+
+  // Set selected location when both application data and locations array are available
+  useEffect(() => {
+    if (applicationData && applicationData.location_id && locations.length > 0) {
+      const location = locations.find((l: any) => l.id === applicationData.location_id);
+      if (location) {
+        setSelectedLocation(location);
+      }
+    }
+  }, [applicationData, locations]);
 
   const onSubmit = async (data: ApplicationFormData) => {
     try {
@@ -464,7 +442,6 @@ const ApplicationForm: React.FC = () => {
         
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <Grid container spacing={3}>
-            {/* Citizen Selection - Full Width */}
             <Grid item xs={12}>
               <Controller
                 name="citizen_id"
@@ -500,8 +477,6 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-
-            {/* First Row - License Category and Application Type */}
             <Grid item xs={12} md={6}>
               <Controller
                 name="applied_category"
@@ -550,8 +525,6 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-
-            {/* Second Row - Status and Application Date */}
             <Grid item xs={12} md={6}>
               <Controller
                 name="status"
@@ -596,9 +569,7 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-
-            {/* Third Row - Verification Fields */}
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="documents_verified"
                 control={control}
@@ -624,7 +595,7 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="medical_verified"
                 control={control}
@@ -650,7 +621,7 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={6}>
               <Controller
                 name="payment_verified"
                 control={control}
@@ -676,8 +647,40 @@ const ApplicationForm: React.FC = () => {
                 )}
               />
             </Grid>
-
-            {/* Collection Point - Half Width */}
+            <Grid item xs={12}>
+              <Controller
+                name="notes"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Notes"
+                    fullWidth
+                    multiline
+                    rows={2}
+                    error={!!errors.notes}
+                    helperText={errors.notes?.message}
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Controller
+                name="review_notes"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Review Notes"
+                    fullWidth
+                    multiline
+                    rows={2}
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
             <Grid item xs={12} md={6}>
               <Controller
                 name="location_id"
@@ -706,49 +709,6 @@ const ApplicationForm: React.FC = () => {
                       ))}
                     </Select>
                   </FormControl>
-                )}
-              />
-            </Grid>
-
-            {/* Empty space for balance */}
-            <Grid item xs={12} md={6}>
-              {/* This creates balanced spacing */}
-            </Grid>
-
-            {/* Notes Section - Full Width */}
-            <Grid item xs={12}>
-              <Controller
-                name="notes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Notes"
-                    fullWidth
-                    multiline
-                    rows={3}
-                    error={!!errors.notes}
-                    helperText={errors.notes?.message}
-                    disabled={loading}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Review Notes Section - Full Width */}
-            <Grid item xs={12}>
-              <Controller
-                name="review_notes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Review Notes"
-                    fullWidth
-                    multiline
-                    rows={3}
-                    disabled={loading}
-                  />
                 )}
               />
             </Grid>
