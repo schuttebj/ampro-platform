@@ -30,7 +30,9 @@ import {
   Settings as SettingsIcon,
   AccountCircle,
   LocationOn as LocationIcon,
-  Layers as WorkflowIcon
+  Layers as WorkflowIcon,
+  PersonAdd as UserManagementIcon,
+  Print as PrinterManagementIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -72,7 +74,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ window }) => {
     { text: 'Workflow', icon: <WorkflowIcon />, path: '/workflow' },
     { text: 'Transactions', icon: <TransactionIcon />, path: '/transactions' },
     { text: 'Reports', icon: <ReportIcon />, path: '/reports' },
-    ...(user?.is_superuser ? [{ text: 'Locations', icon: <LocationIcon />, path: '/location-management' }] : []),
+    ...(user?.is_superuser ? [
+      { text: 'Locations', icon: <LocationIcon />, path: '/location-management' },
+      { text: 'User Management', icon: <UserManagementIcon />, path: '/user-management' },
+      { text: 'Printer Management', icon: <PrinterManagementIcon />, path: '/printer-management' }
+    ] : []),
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
 
