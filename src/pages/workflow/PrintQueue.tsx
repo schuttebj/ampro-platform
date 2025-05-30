@@ -407,10 +407,10 @@ const PrintQueue: React.FC = () => {
     </TableContainer>
   );
 
-  const queuedJobs = filterPrintJobsByStatus(['queued']);
-  const assignedJobs = filterPrintJobsByStatus(['assigned']);
-  const printingJobs = filterPrintJobsByStatus(['printing']);
-  const completedJobs = filterPrintJobsByStatus(['completed']);
+  const queuedJobs = filterPrintJobsByStatus(['QUEUED']);
+  const assignedJobs = filterPrintJobsByStatus(['ASSIGNED']);
+  const printingJobs = filterPrintJobsByStatus(['PRINTING']);
+  const completedJobs = filterPrintJobsByStatus(['COMPLETED']);
 
   return (
     <Box>

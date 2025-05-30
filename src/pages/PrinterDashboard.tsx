@@ -381,7 +381,7 @@ const PrinterDashboard: React.FC = () => {
                             </IconButton>
                           </Tooltip>
 
-                          {job.status === 'assigned' && (
+                          {job.status === 'ASSIGNED' && (
                             <Tooltip title="Start Printing">
                               <IconButton
                                 size="small"
@@ -396,7 +396,7 @@ const PrinterDashboard: React.FC = () => {
                             </Tooltip>
                           )}
 
-                          {job.status === 'printing' && (
+                          {job.status === 'PRINTING' && (
                             <Tooltip title="Complete Job">
                               <IconButton
                                 size="small"

@@ -367,7 +367,7 @@ const WorkflowDashboard: React.FC = () => {
                       {job.assigned_to?.username || 'Unassigned'}
                     </TableCell>
                     <TableCell>
-                      {job.status === 'queued' && (
+                      {job.status === 'QUEUED' && (
                         <Tooltip title="Assign Job">
                           <IconButton
                             size="small"
@@ -380,7 +380,7 @@ const WorkflowDashboard: React.FC = () => {
                           </IconButton>
                         </Tooltip>
                       )}
-                      {job.status === 'assigned' && (
+                      {job.status === 'ASSIGNED' && (
                         <Tooltip title="Start Printing">
                           <IconButton
                             size="small"
@@ -390,7 +390,7 @@ const WorkflowDashboard: React.FC = () => {
                           </IconButton>
                         </Tooltip>
                       )}
-                      {job.status === 'printing' && (
+                      {job.status === 'PRINTING' && (
                         <Tooltip title="Mark Complete">
                           <IconButton
                             size="small"
