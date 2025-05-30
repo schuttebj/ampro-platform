@@ -84,8 +84,10 @@ const WorkflowDashboard: React.FC = () => {
   // Dialog states
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedPrintJob, setSelectedPrintJob] = useState<any>(null);
-  const [assigneeUserId, setAssigneeUserId] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [printerName, setPrinterName] = useState('');
+  const [printerUsers, setPrinterUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   
   const [shipDialogOpen, setShipDialogOpen] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
@@ -126,6 +128,19 @@ const WorkflowDashboard: React.FC = () => {
     }
   };
 
+  const loadPrinterUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const users = await workflowService.getPrinterUsers();
+      setPrinterUsers(users);
+    } catch (err: any) {
+      console.error('Error loading printer users:', err);
+      setError(err.response?.data?.detail || 'Failed to load printer users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -145,17 +160,17 @@ const WorkflowDashboard: React.FC = () => {
   };
 
   const handleAssignPrintJob = async () => {
-    if (!selectedPrintJob || !assigneeUserId) return;
+    if (!selectedPrintJob || !selectedUserId) return;
 
     try {
       await workflowService.assignPrintJob(selectedPrintJob.id, {
-        assigned_to_user_id: parseInt(assigneeUserId),
+        assigned_to_user_id: parseInt(selectedUserId),
         printer_name: printerName || undefined
       });
       
       setAssignDialogOpen(false);
       setSelectedPrintJob(null);
-      setAssigneeUserId('');
+      setSelectedUserId('');
       setPrinterName('');
       loadWorkflowData();
     } catch (err: any) {
@@ -208,6 +223,14 @@ const WorkflowDashboard: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to ship license');
     }
+  };
+
+  const handleOpenAssignDialog = (job: any) => {
+    setSelectedPrintJob(job);
+    setSelectedUserId('');
+    setPrinterName('');
+    setAssignDialogOpen(true);
+    loadPrinterUsers(); // Load users when dialog opens
   };
 
   return (
@@ -371,10 +394,7 @@ const WorkflowDashboard: React.FC = () => {
                         <Tooltip title="Assign Job">
                           <IconButton
                             size="small"
-                            onClick={() => {
-                              setSelectedPrintJob(job);
-                              setAssignDialogOpen(true);
-                            }}
+                            onClick={() => handleOpenAssignDialog(job)}
                           >
                             <AssignmentIcon />
                           </IconButton>
@@ -476,14 +496,27 @@ const WorkflowDashboard: React.FC = () => {
         <DialogTitle>Assign Print Job</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
-            <TextField
-              fullWidth
-              label="Assignee User ID"
-              value={assigneeUserId}
-              onChange={(e) => setAssigneeUserId(e.target.value)}
-              margin="normal"
-              type="number"
-            />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Assignee User</InputLabel>
+              <Select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                label="Assignee User"
+                disabled={loadingUsers}
+              >
+                {loadingUsers ? (
+                  <MenuItem disabled>Loading users...</MenuItem>
+                ) : printerUsers.length === 0 ? (
+                  <MenuItem disabled>No printer users available</MenuItem>
+                ) : (
+                  printerUsers.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {user.full_name || user.username} ({user.username})
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
             <TextField
               fullWidth
               label="Printer Name (Optional)"
@@ -495,7 +528,11 @@ const WorkflowDashboard: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleAssignPrintJob} variant="contained">
+          <Button 
+            onClick={handleAssignPrintJob} 
+            variant="contained"
+            disabled={loading || loadingUsers || !selectedUserId}
+          >
             Assign
           </Button>
         </DialogActions>

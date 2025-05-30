@@ -1,6 +1,10 @@
 import api from './api';
 import {
   User,
+  UserLocation,
+  UserCreate,
+  UserUpdate,
+  UserSearchParams,
   Citizen,
   CitizenSearchParams,
   CitizenFormData,
@@ -37,6 +41,11 @@ import {
   ShippingStatistics,
   WorkflowStatus,
   Printer,
+  PrinterCreate,
+  PrinterUpdate,
+  PrinterSearchParams,
+  PrinterType,
+  PrinterStatus,
   ISOComplianceInfo,
   ISOValidationResult,
   ApplicationUpdateRequest
@@ -422,6 +431,13 @@ export const workflowService = {
   createTestPrintJob: async (): Promise<any> => {
     const response = await api.post('/workflow/test/create-test-print-job');
     return response.data;
+  },
+
+  // Get printer users for assignment dropdown
+  getPrinterUsers: async (locationId?: number): Promise<User[]> => {
+    const params = locationId ? { location_id: locationId } : undefined;
+    const response = await api.get('/workflow/printer-users', { params });
+    return response.data;
   }
 };
 
@@ -628,6 +644,181 @@ export const locationService = {
 
   getLocation: async (locationId: number): Promise<any> => {
     const response = await api.get(`/locations/${locationId}`);
+    return response.data;
+  }
+};
+
+// Admin Services - User Management
+export const adminUserService = {
+  getUsers: async (params?: {
+    role?: string;
+    location_id?: number;
+    search?: string;
+    can_print?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<User[]> => {
+    const response = await api.get('/admin/users', { params });
+    return response.data;
+  },
+
+  createUser: async (userData: {
+    username: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    role: string;
+    password: string;
+    location_id?: number;
+    is_active?: boolean;
+  }): Promise<User> => {
+    const response = await api.post('/admin/users', userData);
+    return response.data;
+  },
+
+  updateUser: async (userId: number, userData: Partial<{
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+    password: string;
+    location_id: number;
+    is_active: boolean;
+  }>): Promise<User> => {
+    const response = await api.put(`/admin/users/${userId}`, userData);
+    return response.data;
+  },
+
+  getUser: async (userId: number): Promise<User> => {
+    const response = await api.get(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  deleteUser: async (userId: number): Promise<void> => {
+    await api.delete(`/admin/users/${userId}`);
+  },
+
+  getPrinterUsers: async (locationId?: number): Promise<User[]> => {
+    const params = locationId ? { location_id: locationId } : undefined;
+    const response = await api.get('/admin/users/printers', { params });
+    return response.data;
+  }
+};
+
+// Admin Services - User-Location Management
+export const adminUserLocationService = {
+  assignUserToLocation: async (userId: number, locationId: number, options?: {
+    is_primary?: boolean;
+    can_print?: boolean;
+  }): Promise<any> => {
+    const response = await api.post(`/admin/users/${userId}/locations/${locationId}`, null, {
+      params: options
+    });
+    return response.data;
+  },
+
+  removeUserFromLocation: async (userId: number, locationId: number): Promise<any> => {
+    const response = await api.delete(`/admin/users/${userId}/locations/${locationId}`);
+    return response.data;
+  },
+
+  setPrimaryLocation: async (userId: number, locationId: number): Promise<any> => {
+    const response = await api.put(`/admin/users/${userId}/locations/${locationId}/primary`);
+    return response.data;
+  },
+
+  updatePrintPermission: async (userId: number, locationId: number, canPrint: boolean): Promise<any> => {
+    const response = await api.put(`/admin/users/${userId}/locations/${locationId}/print-permission`, null, {
+      params: { can_print: canPrint }
+    });
+    return response.data;
+  },
+
+  getUserLocations: async (userId: number): Promise<any[]> => {
+    const response = await api.get(`/admin/users/${userId}/locations`);
+    return response.data;
+  },
+
+  getLocationUsers: async (locationId: number): Promise<any[]> => {
+    const response = await api.get(`/admin/locations/${locationId}/users`);
+    return response.data;
+  }
+};
+
+// Admin Services - Printer Management
+export const adminPrinterService = {
+  getPrinters: async (params?: {
+    location_id?: number;
+    status?: string;
+    printer_type?: string;
+    search?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<Printer[]> => {
+    const response = await api.get('/admin/printers', { params });
+    return response.data;
+  },
+
+  createPrinter: async (printerData: {
+    name: string;
+    code: string;
+    printer_type: string;
+    model?: string;
+    manufacturer?: string;
+    serial_number?: string;
+    ip_address?: string;
+    status?: string;
+    capabilities?: Record<string, any>;
+    settings?: Record<string, any>;
+    location_id?: number;
+    notes?: string;
+    last_maintenance?: string;
+    next_maintenance?: string;
+  }): Promise<Printer> => {
+    const response = await api.post('/admin/printers', printerData);
+    return response.data;
+  },
+
+  updatePrinter: async (printerId: number, printerData: Partial<{
+    name: string;
+    code: string;
+    printer_type: string;
+    model: string;
+    manufacturer: string;
+    serial_number: string;
+    ip_address: string;
+    status: string;
+    capabilities: Record<string, any>;
+    settings: Record<string, any>;
+    location_id: number;
+    notes: string;
+    last_maintenance: string;
+    next_maintenance: string;
+    is_active: boolean;
+  }>): Promise<Printer> => {
+    const response = await api.put(`/admin/printers/${printerId}`, printerData);
+    return response.data;
+  },
+
+  getPrinter: async (printerId: number): Promise<Printer> => {
+    const response = await api.get(`/admin/printers/${printerId}`);
+    return response.data;
+  },
+
+  deletePrinter: async (printerId: number): Promise<void> => {
+    await api.delete(`/admin/printers/${printerId}`);
+  },
+
+  updatePrinterStatus: async (printerId: number, status: string, notes?: string): Promise<any> => {
+    const response = await api.put(`/admin/printers/${printerId}/status`, null, {
+      params: { status, notes }
+    });
+    return response.data;
+  },
+
+  assignPrinterToLocation: async (printerId: number, locationId: number): Promise<any> => {
+    const response = await api.put(`/admin/printers/${printerId}/location/${locationId}`);
     return response.data;
   }
 }; 

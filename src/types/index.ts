@@ -10,6 +10,12 @@ export interface User {
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
+  location_id?: number;
+  location?: Location;
+  // New fields for multi-location support
+  assigned_locations?: UserLocation[];
+  can_print_locations?: UserLocation[];
+  primary_location?: Location;
 }
 
 export interface LoginRequest {
@@ -226,6 +232,15 @@ export interface PrintJob {
   printer_name?: string;
   copies_printed: number;
   print_notes?: string;
+  // New assignment tracking fields
+  auto_assigned?: boolean;
+  assignment_rule?: string;
+  source_location_id?: number;
+  source_location?: Location;
+  target_location_id?: number;
+  target_location?: Location;
+  printer_id?: number;
+  printer?: Printer;
 }
 
 export interface PrintJobCreate {
@@ -335,12 +350,78 @@ export interface CollectionPointSummary {
   pending_count: number;
 }
 
-// Printer Types
+// Enhanced Printer Management Types
+export type PrinterType = 'card_printer' | 'document_printer' | 'photo_printer' | 
+                          'thermal_printer' | 'inkjet_printer' | 'laser_printer';
+
+export type PrinterStatus = 'active' | 'inactive' | 'maintenance' | 'offline' | 'error';
+
+export type PrintingType = 'local' | 'centralized' | 'hybrid' | 'disabled';
+
 export interface Printer {
+  id: number;
   name: string;
-  driver: string;
-  port?: string;
-  status?: string;
+  code: string;
+  printer_type: PrinterType;
+  model?: string;
+  manufacturer?: string;
+  serial_number?: string;
+  ip_address?: string;
+  status: PrinterStatus;
+  capabilities?: Record<string, any>;
+  settings?: Record<string, any>;
+  location_id?: number;
+  location?: Location;
+  notes?: string;
+  last_maintenance?: string;
+  next_maintenance?: string;
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+}
+
+export interface PrinterCreate {
+  name: string;
+  code: string;
+  printer_type: PrinterType;
+  model?: string;
+  manufacturer?: string;
+  serial_number?: string;
+  ip_address?: string;
+  status?: PrinterStatus;
+  capabilities?: Record<string, any>;
+  settings?: Record<string, any>;
+  location_id?: number;
+  notes?: string;
+  last_maintenance?: string;
+  next_maintenance?: string;
+}
+
+export interface PrinterUpdate {
+  name?: string;
+  code?: string;
+  printer_type?: PrinterType;
+  model?: string;
+  manufacturer?: string;
+  serial_number?: string;
+  ip_address?: string;
+  status?: PrinterStatus;
+  capabilities?: Record<string, any>;
+  settings?: Record<string, any>;
+  location_id?: number;
+  notes?: string;
+  last_maintenance?: string;
+  next_maintenance?: string;
+  is_active?: boolean;
+}
+
+export interface PrinterSearchParams {
+  location_id?: number;
+  status?: PrinterStatus;
+  printer_type?: PrinterType;
+  search?: string;
+  skip?: number;
+  limit?: number;
 }
 
 // ISO Compliance Types
@@ -620,4 +701,84 @@ export interface StorageCleanupResponse {
   space_freed_formatted: string;
 }
 
-export type LicenseFileType = 'front_image' | 'back_image' | 'front_pdf' | 'back_pdf' | 'combined_pdf' | 'watermark_pdf'; 
+export type LicenseFileType = 'front_image' | 'back_image' | 'front_pdf' | 'back_pdf' | 'combined_pdf' | 'watermark_pdf';
+
+// New User-Location Management Types
+export interface UserLocation {
+  user_id: number;
+  location_id: number;
+  user?: User;
+  location?: Location;
+  is_primary: boolean;
+  can_print: boolean;
+  created_at: string;
+}
+
+export interface UserLocationCreate {
+  user_id: number;
+  location_id: number;
+  is_primary?: boolean;
+  can_print?: boolean;
+}
+
+export interface UserLocationUpdate {
+  is_primary?: boolean;
+  can_print?: boolean;
+}
+
+// Enhanced User Management Types
+export interface UserCreate {
+  username: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role: 'ADMIN' | 'MANAGER' | 'OFFICER' | 'PRINTER' | 'VIEWER';
+  password: string;
+  location_id?: number;
+  is_active?: boolean;
+}
+
+export interface UserUpdate {
+  username?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: 'ADMIN' | 'MANAGER' | 'OFFICER' | 'PRINTER' | 'VIEWER';
+  password?: string;
+  location_id?: number;
+  is_active?: boolean;
+}
+
+export interface UserSearchParams {
+  role?: 'ADMIN' | 'MANAGER' | 'OFFICER' | 'PRINTER' | 'VIEWER';
+  location_id?: number;
+  search?: string;
+  can_print?: boolean;
+  skip?: number;
+  limit?: number;
+}
+
+// Enhanced Location Types
+export interface Location {
+  id: number;
+  name: string;
+  code: string;
+  address?: string;
+  contact_person?: string;
+  contact_phone?: string;
+  contact_email?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // New printing configuration fields
+  printing_enabled?: boolean;
+  printing_type?: 'local' | 'centralized' | 'hybrid' | 'disabled';
+  default_print_destination_id?: number;
+  default_print_destination?: Location;
+  auto_assign_print_jobs?: boolean;
+  max_print_jobs_per_user?: number;
+  print_job_priority_default?: number;
+  // Related data
+  printers?: Printer[];
+  assigned_users?: UserLocation[];
+} 
