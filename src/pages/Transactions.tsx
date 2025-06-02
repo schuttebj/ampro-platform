@@ -101,6 +101,21 @@ const Transactions: React.FC = () => {
     }
   );
 
+  // Fetch statistics for all matching results (for accurate totals)
+  const { data: statsData } = useQuery(
+    ['transactionStats', queryFilters],
+    () => transactionService.getTransactions({
+      ...queryFilters,
+      skip: 0,
+      limit: 10000 // Get all results for statistics
+    }),
+    {
+      keepPreviousData: true,
+      staleTime: 60000, // 1 minute cache for stats
+      enabled: !!transactionsData, // Only fetch stats after main data loads
+    }
+  );
+
   // Define table columns
   const columns: Column[] = [
     {
@@ -243,20 +258,24 @@ const Transactions: React.FC = () => {
   const summaryStats = React.useMemo(() => {
     if (!transactionsData?.items || !transactionsData?.total) return null;
 
-    const transactions = transactionsData.items;
-    const total = transactionsData.total;
+    const transactions = transactionsData.items; // Current page items
+    const total = transactionsData.total; // Use total from API instead of current page items
+    
+    // Calculate accurate counts from all matching results (statsData)
+    const allTransactions = statsData?.items || transactions;
     const totalAmount = transactions.reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0);
-    const completedTransactions = transactions.filter((t: Transaction) => t.status === 'completed');
-    const pendingTransactions = transactions.filter((t: Transaction) => t.status === 'pending');
+    const completedTransactions = allTransactions.filter((t: Transaction) => t.status === 'completed');
+    const pendingTransactions = allTransactions.filter((t: Transaction) => t.status === 'pending');
+    const completedAmount = transactions.filter((t: Transaction) => t.status === 'completed').reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0);
 
     return {
-      total,
-      totalAmount,
-      completed: completedTransactions.length,
-      pending: pendingTransactions.length,
-      completedAmount: completedTransactions.reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0)
+      total, // Use API total instead of transactions.length
+      totalAmount, // Amount from current page (for display context)
+      completed: completedTransactions.length, // Accurate completed count from all results
+      pending: pendingTransactions.length, // Accurate pending count from all results
+      completedAmount // Amount from current page completed transactions
     };
-  }, [transactionsData]);
+  }, [transactionsData, statsData]);
 
   const handleSearch = (searchTerm: string) => {
     setSearchTerm(searchTerm);

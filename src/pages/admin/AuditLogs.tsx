@@ -106,6 +106,21 @@ const AuditLogs: React.FC = () => {
     }
   );
 
+  // Fetch statistics for all matching results (for action breakdown)
+  const { data: statsData } = useQuery(
+    ['auditLogsStats', queryFilters],
+    () => auditService.getAuditLogs({
+      ...queryFilters,
+      skip: 0,
+      limit: 10000 // Get all results for statistics
+    }),
+    {
+      keepPreviousData: true,
+      staleTime: 60000, // 1 minute cache for stats
+      enabled: !!auditLogsData, // Only fetch stats after main data loads
+    }
+  );
+
   // Fetch users for filter dropdown
   const { data: users } = useQuery(
     'users',
@@ -265,13 +280,21 @@ const AuditLogs: React.FC = () => {
   const summaryStats = React.useMemo(() => {
     if (!auditLogsData?.items || !auditLogsData?.total) return null;
 
-    const logs = auditLogsData.items;
+    const logs = auditLogsData.items; // Current page items
     const total = auditLogsData.total; // Use total from API instead of current page items
-    const actionCounts = logs.reduce((acc: Record<string, number>, log: AuditLog) => {
-      acc[log.action_type] = (acc[log.action_type] || 0) + 1;
-      return acc;
-    }, {});
+    
+    // Calculate action breakdown from all matching results (statsData)
+    const actionCounts = statsData?.items 
+      ? statsData.items.reduce((acc: Record<string, number>, log: AuditLog) => {
+          acc[log.action_type] = (acc[log.action_type] || 0) + 1;
+          return acc;
+        }, {})
+      : logs.reduce((acc: Record<string, number>, log: AuditLog) => {
+          acc[log.action_type] = (acc[log.action_type] || 0) + 1;
+          return acc;
+        }, {});
 
+    // Use current page for user-specific metrics (these are just for current view context)
     const uniqueUsers = new Set(logs.filter((log: AuditLog) => log.user_id).map((log: AuditLog) => log.user_id)).size;
     const systemActions = logs.filter((log: AuditLog) => !log.user_id).length;
 
@@ -281,7 +304,7 @@ const AuditLogs: React.FC = () => {
       systemActions,
       actionCounts
     };
-  }, [auditLogsData]);
+  }, [auditLogsData, statsData]);
 
   // Function to get changed values between old and new
   const getChangedValues = (oldValues: Record<string, any> | null, newValues: Record<string, any> | null) => {
