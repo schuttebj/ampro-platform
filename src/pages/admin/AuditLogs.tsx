@@ -263,9 +263,10 @@ const AuditLogs: React.FC = () => {
 
   // Calculate summary statistics
   const summaryStats = React.useMemo(() => {
-    if (!auditLogsData?.items) return null;
+    if (!auditLogsData?.items || !auditLogsData?.total) return null;
 
     const logs = auditLogsData.items;
+    const total = auditLogsData.total; // Use total from API instead of current page items
     const actionCounts = logs.reduce((acc: Record<string, number>, log: AuditLog) => {
       acc[log.action_type] = (acc[log.action_type] || 0) + 1;
       return acc;
@@ -275,12 +276,52 @@ const AuditLogs: React.FC = () => {
     const systemActions = logs.filter((log: AuditLog) => !log.user_id).length;
 
     return {
-      total: logs.length,
+      total, // Use API total instead of logs.length
       uniqueUsers,
       systemActions,
       actionCounts
     };
   }, [auditLogsData]);
+
+  // Function to get changed values between old and new
+  const getChangedValues = (oldValues: Record<string, any> | null, newValues: Record<string, any> | null) => {
+    if (!oldValues && !newValues) return {};
+    if (!oldValues) return newValues || {};
+    if (!newValues) return {};
+
+    const changes: Record<string, { old: any; new: any }> = {};
+    
+    // Check all keys from both objects
+    const allKeys = Array.from(new Set([...Object.keys(oldValues), ...Object.keys(newValues)]));
+    
+    for (const key of allKeys) {
+      const oldVal = oldValues[key];
+      const newVal = newValues[key];
+      
+      // Compare values (handle different types)
+      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        changes[key] = { old: oldVal, new: newVal };
+      }
+    }
+    
+    return changes;
+  };
+
+  // Function to format value for display
+  const formatValue = (value: any): string => {
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (typeof value === 'object') return JSON.stringify(value, null, 2);
+    if (typeof value === 'string' && value.includes('T') && value.includes('Z')) {
+      // Try to format as date
+      try {
+        return new Date(value).toLocaleString();
+      } catch {
+        return value;
+      }
+    }
+    return String(value);
+  };
 
   const handleSearch = (searchTerm: string) => {
     setSearchTerm(searchTerm);
@@ -536,31 +577,105 @@ const AuditLogs: React.FC = () => {
                 </Table>
               </TableContainer>
 
-              {/* Old Values and New Values Sections */}
+              {/* Changed Values and Full Values Sections */}
               {(selectedAuditLog.old_values || selectedAuditLog.new_values) && (
                 <Box>
+                  {/* Show Changed Values First */}
+                  {(() => {
+                    const changedValues = getChangedValues(selectedAuditLog.old_values, selectedAuditLog.new_values);
+                    const hasChanges = Object.keys(changedValues).length > 0;
+                    
+                    return hasChanges ? (
+                      <Accordion defaultExpanded>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Typography variant="h6" color="primary">
+                            Changed Values ({Object.keys(changedValues).length} fields)
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <TableContainer>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell><strong>Field</strong></TableCell>
+                                  <TableCell><strong>Previous Value</strong></TableCell>
+                                  <TableCell><strong>New Value</strong></TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {Object.entries(changedValues).map(([field, { old, new: newVal }]) => (
+                                  <TableRow key={field}>
+                                    <TableCell>
+                                      <Typography variant="body2" fontWeight="bold">
+                                        {field.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Typography variant="body2" color="error.main">
+                                        {formatValue(old)}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Typography variant="body2" color="success.main">
+                                        {formatValue(newVal)}
+                                      </Typography>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </AccordionDetails>
+                      </Accordion>
+                    ) : null;
+                  })()}
+                  
+                  {/* Show Full Previous Values */}
                   {selectedAuditLog.old_values && (
                     <Accordion>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography variant="h6">Previous Values</Typography>
+                        <Typography variant="h6">All Previous Values</Typography>
                       </AccordionSummary>
                       <AccordionDetails>
-                        <pre style={{ backgroundColor: '#f5f5f5', padding: '16px', overflow: 'auto' }}>
-                          {JSON.stringify(selectedAuditLog.old_values, null, 2)}
-                        </pre>
+                        <TableContainer>
+                          <Table size="small">
+                            <TableBody>
+                              {Object.entries(selectedAuditLog.old_values).map(([field, value]) => (
+                                <TableRow key={field}>
+                                  <TableCell variant="head" sx={{ width: '30%' }}>
+                                    {field.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                  </TableCell>
+                                  <TableCell>{formatValue(value)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
                       </AccordionDetails>
                     </Accordion>
                   )}
                   
+                  {/* Show Full New Values */}
                   {selectedAuditLog.new_values && (
                     <Accordion>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography variant="h6">New Values</Typography>
+                        <Typography variant="h6">All New Values</Typography>
                       </AccordionSummary>
                       <AccordionDetails>
-                        <pre style={{ backgroundColor: '#f5f5f5', padding: '16px', overflow: 'auto' }}>
-                          {JSON.stringify(selectedAuditLog.new_values, null, 2)}
-                        </pre>
+                        <TableContainer>
+                          <Table size="small">
+                            <TableBody>
+                              {Object.entries(selectedAuditLog.new_values).map(([field, value]) => (
+                                <TableRow key={field}>
+                                  <TableCell variant="head" sx={{ width: '30%' }}>
+                                    {field.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                  </TableCell>
+                                  <TableCell>{formatValue(value)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
                       </AccordionDetails>
                     </Accordion>
                   )}

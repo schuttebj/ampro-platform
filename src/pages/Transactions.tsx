@@ -241,15 +241,16 @@ const Transactions: React.FC = () => {
 
   // Calculate summary statistics
   const summaryStats = React.useMemo(() => {
-    if (!transactionsData?.items) return null;
+    if (!transactionsData?.items || !transactionsData?.total) return null;
 
     const transactions = transactionsData.items;
+    const total = transactionsData.total;
     const totalAmount = transactions.reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0);
     const completedTransactions = transactions.filter((t: Transaction) => t.status === 'completed');
     const pendingTransactions = transactions.filter((t: Transaction) => t.status === 'pending');
 
     return {
-      total: transactions.length,
+      total,
       totalAmount,
       completed: completedTransactions.length,
       pending: pendingTransactions.length,
