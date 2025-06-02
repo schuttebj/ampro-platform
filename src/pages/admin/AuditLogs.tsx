@@ -582,7 +582,10 @@ const AuditLogs: React.FC = () => {
                 <Box>
                   {/* Show Changed Values First */}
                   {(() => {
-                    const changedValues = getChangedValues(selectedAuditLog.old_values, selectedAuditLog.new_values);
+                    const changedValues = getChangedValues(
+                      selectedAuditLog.old_values || null, 
+                      selectedAuditLog.new_values || null
+                    );
                     const hasChanges = Object.keys(changedValues).length > 0;
                     
                     return hasChanges ? (
