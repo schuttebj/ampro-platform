@@ -96,6 +96,13 @@ const AuditLogs: React.FC = () => {
     {
       keepPreviousData: true,
       staleTime: 30000, // 30 seconds
+      onSuccess: (data) => {
+        console.log('Audit Logs API Response:', data);
+        console.log('Number of audit logs:', data?.items?.length || 0);
+      },
+      onError: (error) => {
+        console.error('Audit Logs API Error:', error);
+      }
     }
   );
 

@@ -91,6 +91,13 @@ const Transactions: React.FC = () => {
     {
       keepPreviousData: true,
       staleTime: 30000, // 30 seconds
+      onSuccess: (data) => {
+        console.log('Transactions API Response:', data);
+        console.log('Number of transactions:', data?.items?.length || 0);
+      },
+      onError: (error) => {
+        console.error('Transactions API Error:', error);
+      }
     }
   );
 
