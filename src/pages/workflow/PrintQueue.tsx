@@ -81,13 +81,19 @@ const PrintQueue: React.FC = () => {
   
   // Dialog state
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [bulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
   const [startDialogOpen, setStartDialogOpen] = useState(false);
+  const [bulkStartDialogOpen, setBulkStartDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [selectedPrintJob, setSelectedPrintJob] = useState<PrintJob | null>(null);
+  const [selectedPrintJobs, setSelectedPrintJobs] = useState<number[]>([]);
   const [assigneeUserId, setAssigneeUserId] = useState('');
+  const [bulkAssigneeUserId, setBulkAssigneeUserId] = useState('');
   const [selectedPrinter, setSelectedPrinter] = useState('');
+  const [bulkSelectedPrinter, setBulkSelectedPrinter] = useState('');
   const [copiesCount, setCopiesCount] = useState(1);
   const [completionNotes, setCompletionNotes] = useState('');
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Manual testing state
   const [approvedApps, setApprovedApps] = useState<any[]>([]);
@@ -292,65 +298,166 @@ const PrintQueue: React.FC = () => {
     return printJobs.filter(job => status.includes(job.status));
   };
 
+  const handleBulkAssignment = async () => {
+    if (selectedPrintJobs.length === 0 || !bulkAssigneeUserId) return;
+    
+    try {
+      setBulkProcessing(true);
+      setError('');
+      
+      const assignmentPromises = selectedPrintJobs.map(async (printJobId) => {
+        return workflowService.assignPrintJob(printJobId, {
+          user_id: parseInt(bulkAssigneeUserId)
+        });
+      });
+      
+      await Promise.all(assignmentPromises);
+      
+      setSuccessMessage(`Successfully assigned ${selectedPrintJobs.length} print jobs`);
+      setSelectedPrintJobs([]);
+      setBulkAssignDialogOpen(false);
+      setBulkAssigneeUserId('');
+      loadPrintQueueData();
+      
+    } catch (err: any) {
+      setError(`Bulk assignment failed: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkStart = async () => {
+    if (selectedPrintJobs.length === 0 || !bulkSelectedPrinter) return;
+    
+    try {
+      setBulkProcessing(true);
+      setError('');
+      
+      const startPromises = selectedPrintJobs.map(async (printJobId) => {
+        return workflowService.startPrintJob(printJobId, {
+          printer_name: bulkSelectedPrinter
+        });
+      });
+      
+      await Promise.all(startPromises);
+      
+      setSuccessMessage(`Successfully started ${selectedPrintJobs.length} print jobs`);
+      setSelectedPrintJobs([]);
+      setBulkStartDialogOpen(false);
+      setBulkSelectedPrinter('');
+      loadPrintQueueData();
+      
+    } catch (err: any) {
+      setError(`Bulk start failed: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const queuedJobs = filterPrintJobsByStatus(['QUEUED']);
+  const assignedJobs = filterPrintJobsByStatus(['ASSIGNED']);
+  const printingJobs = filterPrintJobsByStatus(['PRINTING']);
+  const completedJobs = filterPrintJobsByStatus(['COMPLETED']);
+
   const renderPrintJobTable = (jobs: PrintJob[]) => (
     <TableContainer component={Paper}>
       <Table>
         <TableHead>
           <TableRow>
+            <TableCell padding="checkbox">
+              <input 
+                type="checkbox" 
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedPrintJobs(jobs.map(job => job.id));
+                  } else {
+                    setSelectedPrintJobs([]);
+                  }
+                }}
+                checked={selectedPrintJobs.length === jobs.length && jobs.length > 0}
+              />
+            </TableCell>
             <TableCell>Job ID</TableCell>
-            <TableCell>Application</TableCell>
+            <TableCell>License Number</TableCell>
             <TableCell>Citizen</TableCell>
-            <TableCell>License #</TableCell>
-            <TableCell>Priority</TableCell>
             <TableCell>Status</TableCell>
+            <TableCell>Priority</TableCell>
             <TableCell>Assigned To</TableCell>
-            <TableCell>Queued</TableCell>
+            <TableCell>Created</TableCell>
             <TableCell>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {jobs.map((job) => (
             <TableRow key={job.id}>
-              <TableCell>PJ-{job.id.toString().padStart(4, '0')}</TableCell>
-              <TableCell>APP-{job.application_id.toString().padStart(6, '0')}</TableCell>
-              <TableCell>{'Unknown Citizen'}</TableCell>
-              <TableCell>{'License Pending'}</TableCell>
-              <TableCell>
-                <Chip 
-                  label={getPriorityLabel(job.priority)} 
-                  color={getPriorityColor(job.priority)}
-                  size="small"
+              <TableCell padding="checkbox">
+                <input 
+                  type="checkbox" 
+                  checked={selectedPrintJobs.includes(job.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedPrintJobs([...selectedPrintJobs, job.id]);
+                    } else {
+                      setSelectedPrintJobs(selectedPrintJobs.filter(id => id !== job.id));
+                    }
+                  }}
                 />
               </TableCell>
               <TableCell>
-                <Chip 
-                  label={job.status.replace('_', ' ')} 
+                <Typography variant="body2" fontFamily="monospace">
+                  PJ-{job.id}
+                </Typography>
+              </TableCell>
+              <TableCell>
+                <Typography variant="body2" fontFamily="monospace">
+                  {job.license?.license_number || 'N/A'}
+                </Typography>
+              </TableCell>
+              <TableCell>
+                {job.application?.citizen ? 
+                  `${job.application.citizen.first_name} ${job.application.citizen.last_name}` : 
+                  'Unknown'
+                }
+              </TableCell>
+              <TableCell>
+                <Chip
+                  label={job.status}
                   color={getStatusColor(job.status)}
                   size="small"
                 />
               </TableCell>
               <TableCell>
-                {job.assigned_to?.full_name ? (
+                <Chip
+                  label={getPriorityLabel(job.priority)}
+                  color={getPriorityColor(job.priority)}
+                  size="small"
+                />
+              </TableCell>
+              <TableCell>
+                {job.assigned_user ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 24, height: 24 }}>
-                      <PersonIcon fontSize="small" />
+                      {job.assigned_user.full_name?.charAt(0)}
                     </Avatar>
-                    <Typography variant="body2">{job.assigned_to.full_name}</Typography>
+                    <Typography variant="body2">
+                      {job.assigned_user.full_name}
+                    </Typography>
                   </Box>
                 ) : (
-                  <Typography variant="body2" color="text.secondary">Unassigned</Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Unassigned
+                  </Typography>
                 )}
               </TableCell>
               <TableCell>
-                {new Date(job.queued_at).toLocaleString()}
+                {new Date(job.created_at).toLocaleDateString()}
               </TableCell>
               <TableCell>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
                   {job.status === 'QUEUED' && (
-                    <Tooltip title="Assign to Operator">
+                    <Tooltip title="Assign Job">
                       <IconButton 
                         size="small" 
-                        color="primary"
                         onClick={() => handleAssignDialogOpen(job)}
                       >
                         <AssignIcon />
@@ -369,33 +476,22 @@ const PrintQueue: React.FC = () => {
                     </Tooltip>
                   )}
                   {job.status === 'PRINTING' && (
-                    <>
-                      <Tooltip title="Print License Card">
-                        <IconButton 
-                          size="small" 
-                          color="info"
-                          onClick={() => handlePrintLicenseCard(job.id)}
-                        >
-                          <PrintIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Complete Job">
-                        <IconButton 
-                          size="small" 
-                          color="success"
-                          onClick={() => handleCompleteDialogOpen(job)}
-                        >
-                          <CompleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </>
+                    <Tooltip title="Mark Complete">
+                      <IconButton 
+                        size="small" 
+                        color="success"
+                        onClick={() => handleCompleteDialogOpen(job)}
+                      >
+                        <CompleteIcon />
+                      </IconButton>
+                    </Tooltip>
                   )}
-                  <Tooltip title="View Files">
+                  <Tooltip title="Print License">
                     <IconButton 
-                      size="small"
-                      onClick={() => navigate(`/licenses/${job.license_id}`)}
+                      size="small" 
+                      onClick={() => handlePrintLicenseCard(job.id)}
                     >
-                      <ViewIcon />
+                      <PrintIcon />
                     </IconButton>
                   </Tooltip>
                 </Box>
@@ -406,11 +502,6 @@ const PrintQueue: React.FC = () => {
       </Table>
     </TableContainer>
   );
-
-  const queuedJobs = filterPrintJobsByStatus(['QUEUED']);
-  const assignedJobs = filterPrintJobsByStatus(['ASSIGNED']);
-  const printingJobs = filterPrintJobsByStatus(['PRINTING']);
-  const completedJobs = filterPrintJobsByStatus(['COMPLETED']);
 
   return (
     <Box>
@@ -613,6 +704,44 @@ const PrintQueue: React.FC = () => {
         </Box>
       )}
 
+      {/* Bulk Actions Bar */}
+      {selectedPrintJobs.length > 0 && (
+        <Card sx={{ mb: 3, backgroundColor: 'action.hover' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="h6">
+                {selectedPrintJobs.length} print job(s) selected
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AssignIcon />}
+                  onClick={() => setBulkAssignDialogOpen(true)}
+                  disabled={bulkProcessing}
+                >
+                  Bulk Assign
+                </Button>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  startIcon={<StartIcon />}
+                  onClick={() => setBulkStartDialogOpen(true)}
+                  disabled={bulkProcessing}
+                >
+                  Bulk Start
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => setSelectedPrintJobs([])}
+                >
+                  Clear Selection
+                </Button>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Assign Dialog */}
       <Dialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Assign Print Job</DialogTitle>
@@ -770,6 +899,121 @@ const PrintQueue: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setTestingDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Assignment Dialog */}
+      <Dialog 
+        open={bulkAssignDialogOpen} 
+        onClose={() => setBulkAssignDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Bulk Print Job Assignment</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            Assign {selectedPrintJobs.length} print jobs to a printer operator.
+          </Typography>
+          
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Assign to Printer Operator *</InputLabel>
+            <Select
+              value={bulkAssigneeUserId}
+              label="Assign to Printer Operator *"
+              onChange={(e) => setBulkAssigneeUserId(e.target.value)}
+            >
+              {users.map((user) => (
+                <MenuItem key={user.id} value={user.id.toString()}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PersonIcon fontSize="small" />
+                    {user.full_name} ({user.username})
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          {bulkProcessing && (
+            <Box sx={{ mt: 2 }}>
+              <LinearProgress />
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                Assigning {selectedPrintJobs.length} print jobs...
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setBulkAssignDialogOpen(false)}
+            disabled={bulkProcessing}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleBulkAssignment}
+            disabled={!bulkAssigneeUserId || bulkProcessing}
+          >
+            {bulkProcessing ? 'Assigning...' : `Assign ${selectedPrintJobs.length} Jobs`}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Start Dialog */}
+      <Dialog 
+        open={bulkStartDialogOpen} 
+        onClose={() => setBulkStartDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Bulk Start Print Jobs</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            Start printing for {selectedPrintJobs.length} print jobs.
+          </Typography>
+          
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Select Printer *</InputLabel>
+            <Select
+              value={bulkSelectedPrinter}
+              label="Select Printer *"
+              onChange={(e) => setBulkSelectedPrinter(e.target.value)}
+            >
+              {printers.map((printer) => (
+                <MenuItem key={printer.name} value={printer.name}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PrintIcon fontSize="small" />
+                    {printer.name} ({printer.status})
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          {bulkProcessing && (
+            <Box sx={{ mt: 2 }}>
+              <LinearProgress />
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                Starting {selectedPrintJobs.length} print jobs...
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setBulkStartDialogOpen(false)}
+            disabled={bulkProcessing}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            color="warning"
+            onClick={handleBulkStart}
+            disabled={!bulkSelectedPrinter || bulkProcessing}
+          >
+            {bulkProcessing ? 'Starting...' : `Start ${selectedPrintJobs.length} Jobs`}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

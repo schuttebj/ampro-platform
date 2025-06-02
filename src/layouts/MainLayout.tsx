@@ -36,6 +36,7 @@ import {
   Security as SecurityIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationSystem from '../components/NotificationSystem';
 
 const drawerWidth = 240;
 
@@ -133,6 +134,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ window }) => {
             AMPRO License System
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <NotificationSystem />
             <Typography variant="body1" sx={{ mr: 2 }}>
               {user?.full_name}
             </Typography>
