@@ -32,7 +32,8 @@ import {
   LocationOn as LocationIcon,
   Layers as WorkflowIcon,
   PersonAdd as UserManagementIcon,
-  Print as PrinterManagementIcon
+  Print as PrinterManagementIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -77,7 +78,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ window }) => {
     ...(user?.is_superuser ? [
       { text: 'Locations', icon: <LocationIcon />, path: '/location-management' },
       { text: 'User Management', icon: <UserManagementIcon />, path: '/user-management' },
-      { text: 'Printer Management', icon: <PrinterManagementIcon />, path: '/printer-management' }
+      { text: 'Printer Management', icon: <PrinterManagementIcon />, path: '/printer-management' },
+      { text: 'Audit Logs', icon: <SecurityIcon />, path: '/audit-logs' }
     ] : []),
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];

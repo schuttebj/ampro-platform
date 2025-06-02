@@ -469,20 +469,24 @@ export interface ISOValidationResult {
 export interface Transaction {
   id: number;
   transaction_ref: string;
-  transaction_type: 'LICENSE_ISSUE' | 'LICENSE_RENEWAL' | 'APPLICATION_FEE' | 'PENALTY';
-  amount: number;
-  currency: string;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  transaction_type: 'license_issuance' | 'license_renewal' | 'license_replacement' | 'application_submission' | 'application_approval' | 'application_rejection' | 'fee_payment' | 'document_upload';
+  amount?: number;
+  currency?: string;
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
   citizen_id?: number;
   citizen?: Citizen;
   license_id?: number;
   license?: License;
   application_id?: number;
   application?: Application;
-  processed_by?: number;
-  processor?: User;
+  user_id?: number;
+  user?: User;
   payment_method?: string;
   payment_reference?: string;
+  notes?: string;
+  transaction_metadata?: Record<string, any>;
+  initiated_at: string;
+  completed_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -490,16 +494,17 @@ export interface Transaction {
 // Audit Types
 export interface AuditLog {
   id: number;
-  user_id: number;
+  user_id?: number;
   user?: User;
-  action: string;
-  resource_type: string;
-  resource_id: number;
-  old_values?: Record<string, any>;
-  new_values?: Record<string, any>;
   ip_address?: string;
   user_agent?: string;
-  created_at: string;
+  action_type: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'PRINT' | 'EXPORT' | 'VERIFY' | 'GENERATE';
+  resource_type: 'USER' | 'CITIZEN' | 'LICENSE' | 'APPLICATION' | 'LOCATION' | 'FILE' | 'SYSTEM';
+  resource_id?: string;
+  timestamp: string;
+  description?: string;
+  old_values?: Record<string, any>;
+  new_values?: Record<string, any>;
 }
 
 // External Data Types

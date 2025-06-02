@@ -33,6 +33,7 @@ import Reports from './pages/Reports';
 import LocationManagement from './pages/admin/LocationManagement';
 import UserManagement from './pages/admin/UserManagement';
 import PrinterManagement from './pages/admin/PrinterManagement';
+import AuditLogs from './pages/admin/AuditLogs';
 
 // New Workflow Pages
 import WorkflowMain from './pages/workflow/WorkflowMain';
@@ -154,6 +155,7 @@ const App: React.FC = () => {
                   <Route path="/location-management" element={<LocationManagement />} />
                   <Route path="/user-management" element={<UserManagement />} />
                   <Route path="/printer-management" element={<PrinterManagement />} />
+                  <Route path="/audit-logs" element={<AuditLogs />} />
                 </Route>
               </Route>
               

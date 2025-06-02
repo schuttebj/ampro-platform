@@ -506,8 +506,19 @@ export const isoComplianceService = {
 
 // Transaction Services
 export const transactionService = {
-  getTransactions: async (): Promise<PaginatedResponse<Transaction>> => {
-    const response = await api.get('/transactions/');
+  getTransactions: async (filters?: {
+    skip?: number;
+    limit?: number;
+    transaction_type?: string;
+    status?: string;
+    citizen_id?: number;
+    license_id?: number;
+    date_from?: string;
+    date_to?: string;
+    amount_min?: number;
+    amount_max?: number;
+  }): Promise<PaginatedResponse<Transaction>> => {
+    const response = await api.get('/transactions/', { params: filters });
     return response.data;
   },
 
@@ -521,21 +532,50 @@ export const transactionService = {
     return response.data;
   },
 
-  getCitizenTransactions: async (citizenId: number): Promise<Transaction[]> => {
-    const response = await api.get(`/transactions/citizen/${citizenId}`);
+  getCitizenTransactions: async (citizenId: number, filters?: {
+    skip?: number;
+    limit?: number;
+  }): Promise<Transaction[]> => {
+    const response = await api.get(`/transactions/citizen/${citizenId}`, { params: filters });
     return response.data;
   },
 
-  getLicenseTransactions: async (licenseId: number): Promise<Transaction[]> => {
-    const response = await api.get(`/transactions/license/${licenseId}`);
+  getLicenseTransactions: async (licenseId: number, filters?: {
+    skip?: number;
+    limit?: number;
+  }): Promise<Transaction[]> => {
+    const response = await api.get(`/transactions/license/${licenseId}`, { params: filters });
+    return response.data;
+  },
+
+  exportTransactions: async (filters?: {
+    transaction_type?: string;
+    status?: string;
+    date_from?: string;
+    date_to?: string;
+    format?: 'csv' | 'excel';
+  }): Promise<Blob> => {
+    const response = await api.get('/transactions/export', { 
+      params: filters,
+      responseType: 'blob'
+    });
     return response.data;
   }
 };
 
 // Audit Services
 export const auditService = {
-  getAuditLogs: async (): Promise<PaginatedResponse<AuditLog>> => {
-    const response = await api.get('/audit/');
+  getAuditLogs: async (filters?: {
+    skip?: number;
+    limit?: number;
+    user_id?: number;
+    action_type?: string;
+    resource_type?: string;
+    resource_id?: string;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<PaginatedResponse<AuditLog>> => {
+    const response = await api.get('/audit/', { params: filters });
     return response.data;
   },
 
@@ -544,8 +584,77 @@ export const auditService = {
     return response.data;
   },
 
-  getUserAuditLogs: async (userId: number): Promise<AuditLog[]> => {
-    const response = await api.get(`/audit/user/${userId}`);
+  getUserAuditLogs: async (userId: number, filters?: {
+    skip?: number;
+    limit?: number;
+    action_type?: string;
+    resource_type?: string;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<AuditLog[]> => {
+    const response = await api.get(`/audit/user/${userId}`, { params: filters });
+    return response.data;
+  },
+
+  getActionAuditLogs: async (actionType: string, filters?: {
+    skip?: number;
+    limit?: number;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<AuditLog[]> => {
+    const response = await api.get(`/audit/action/${actionType}`, { params: filters });
+    return response.data;
+  },
+
+  getResourceAuditLogs: async (resourceType: string, filters?: {
+    skip?: number;
+    limit?: number;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<AuditLog[]> => {
+    const response = await api.get(`/audit/resource/${resourceType}`, { params: filters });
+    return response.data;
+  },
+
+  getResourceIdAuditLogs: async (resourceType: string, resourceId: string, filters?: {
+    skip?: number;
+    limit?: number;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<AuditLog[]> => {
+    const response = await api.get(`/audit/resource/${resourceType}/${resourceId}`, { params: filters });
+    return response.data;
+  },
+
+  getDateRangeAuditLogs: async (startDate: string, endDate: string, filters?: {
+    skip?: number;
+    limit?: number;
+    user_id?: number;
+    action_type?: string;
+    resource_type?: string;
+  }): Promise<AuditLog[]> => {
+    const response = await api.get('/audit/date-range', { 
+      params: { 
+        start_date: startDate,
+        end_date: endDate,
+        ...filters
+      }
+    });
+    return response.data;
+  },
+
+  exportAuditLogs: async (filters?: {
+    user_id?: number;
+    action_type?: string;
+    resource_type?: string;
+    date_from?: string;
+    date_to?: string;
+    format?: 'csv' | 'excel';
+  }): Promise<Blob> => {
+    const response = await api.get('/audit/export', { 
+      params: filters,
+      responseType: 'blob'
+    });
     return response.data;
   }
 };
