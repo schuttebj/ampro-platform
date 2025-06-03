@@ -604,7 +604,7 @@ const ApplicationReview: React.FC = () => {
                   />
                 </TableCell>
                 <TableCell>
-                  {new Date(application.applied_date || application.created_at).toLocaleDateString()}
+                  {new Date(application.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
