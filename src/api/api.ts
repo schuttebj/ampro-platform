@@ -1,5 +1,6 @@
 // @ts-ignore - Import axios
 import axios from 'axios';
+import { Hardware, HardwareCreate, HardwareUpdate, HardwareSearchParams, HardwareStatusUpdate, WebcamCaptureResponse } from '../types';
 
 // Set backend URL to the Render deployment which seems to be the actual backend
 const API_URL = 'https://ampro-licence.onrender.com';
@@ -122,4 +123,86 @@ export const testApiConnection = async () => {
   return results;
 };
 
-export default api; 
+export default api;
+
+// Hardware API Functions
+export const hardwareApi = {
+  // Get all hardware devices with optional filtering
+  getAll: async (params?: HardwareSearchParams): Promise<Hardware[]> => {
+    const response = await api.get('/hardware/', { params });
+    return response.data;
+  },
+
+  // Get hardware device by ID
+  getById: async (id: number): Promise<Hardware> => {
+    const response = await api.get(`/hardware/${id}`);
+    return response.data;
+  },
+
+  // Create new hardware device
+  create: async (data: HardwareCreate): Promise<Hardware> => {
+    const response = await api.post('/hardware/', data);
+    return response.data;
+  },
+
+  // Update hardware device
+  update: async (id: number, data: HardwareUpdate): Promise<Hardware> => {
+    const response = await api.put(`/hardware/${id}`, data);
+    return response.data;
+  },
+
+  // Delete hardware device
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/hardware/${id}`);
+  },
+
+  // Update hardware status
+  updateStatus: async (id: number, data: HardwareStatusUpdate): Promise<Hardware> => {
+    const response = await api.put(`/hardware/${id}/status`, data);
+    return response.data;
+  },
+
+  // Get hardware statistics
+  getStatistics: async (): Promise<any> => {
+    const response = await api.get('/hardware/statistics');
+    return response.data;
+  },
+
+  // Test hardware device
+  test: async (id: number): Promise<any> => {
+    const response = await api.post(`/hardware/${id}/test`);
+    return response.data;
+  },
+
+  // Get webcam-specific functions
+  webcam: {
+    // Detect available webcams
+    detect: async (): Promise<any[]> => {
+      const response = await api.get('/hardware/webcam/detect');
+      return response.data;
+    },
+
+    // Capture photo using webcam
+    capture: async (params: {
+      hardware_id: number;
+      citizen_id: number;
+      quality?: string;
+      format?: string;
+    }): Promise<WebcamCaptureResponse> => {
+      const response = await api.post('/hardware/webcam/capture', params);
+      return response.data;
+    },
+
+    // Get webcam status
+    getStatus: async (hardwareId: number): Promise<any> => {
+      const response = await api.get(`/hardware/webcam/${hardwareId}/status`);
+      return response.data;
+    },
+
+    // Get webcam settings
+    getSettings: async (hardwareId: number): Promise<any> => {
+      const response = await api.get(`/hardware/webcam/${hardwareId}/settings`);
+      return response.data;
+    }
+  }
+}; 

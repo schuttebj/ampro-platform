@@ -24,7 +24,6 @@ import {
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { Hardware, WebcamCaptureRequest, WebcamCaptureResponse } from '../types';
-import api from '../api/api';
 
 interface WebcamCaptureProps {
   citizenId: number;
@@ -56,16 +55,24 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       setLoading(true);
       setError('');
       
-      const response = await api.get('/hardware/webcams/available');
-      setWebcams(response.data);
+      // Import the API service and get webcam hardware devices
+      const { hardwareApi } = await import('../api/api');
+      
+      // Get all active webcam hardware devices
+      const allHardware = await hardwareApi.getAll({
+        hardware_type: 'WEBCAM',
+        status: 'ACTIVE'
+      });
+      
+      setWebcams(allHardware);
       
       // Auto-select first webcam if available
-      if (response.data.length > 0) {
-        setSelectedWebcam(response.data[0].id);
+      if (allHardware.length > 0) {
+        setSelectedWebcam(allHardware[0].id);
       }
     } catch (err: any) {
       console.error('Error loading webcams:', err);
-      setError(err.response?.data?.detail || 'Failed to load available webcams');
+      setError(err.response?.data?.detail || err.message || 'Failed to load available webcams');
     } finally {
       setLoading(false);
     }
@@ -82,21 +89,19 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       setError('');
       setSuccess('');
 
-      const captureRequest: WebcamCaptureRequest = {
+      // Import the API service and capture photo
+      const { hardwareApi } = await import('../api/api');
+
+      const response = await hardwareApi.webcam.capture({
         hardware_id: selectedWebcam,
         citizen_id: citizenId,
         quality: 'high',
         format: 'jpeg'
-      };
+      });
 
-      const response = await api.post<WebcamCaptureResponse>(
-        '/hardware/webcams/capture',
-        captureRequest
-      );
-
-      if (response.data.success && response.data.photo_url) {
+      if (response.success && response.photo_url) {
         setSuccess('Photo captured successfully!');
-        onPhotoCapture(response.data.photo_url);
+        onPhotoCapture(response.photo_url);
         
         // Close dialog after a short delay
         setTimeout(() => {
@@ -104,11 +109,11 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
           setSuccess('');
         }, 1500);
       } else {
-        setError(response.data.error_message || 'Photo capture failed');
+        setError(response.error_message || 'Photo capture failed');
       }
     } catch (err: any) {
       console.error('Error capturing photo:', err);
-      setError(err.response?.data?.detail || 'Failed to capture photo');
+      setError(err.response?.data?.detail || err.message || 'Failed to capture photo');
     } finally {
       setCapturing(false);
     }

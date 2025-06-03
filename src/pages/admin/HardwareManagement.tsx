@@ -105,60 +105,32 @@ const HardwareManagement: React.FC = () => {
       setLoading(true);
       setError('');
 
-      // Mock API calls - replace with actual API service calls
-      const hardwareData: Hardware[] = [
-        {
-          id: 1,
-          name: 'Main Reception Webcam',
-          code: 'WC001',
-          hardware_type: 'WEBCAM',
-          model: 'Logitech C920',
-          manufacturer: 'Logitech',
-          serial_number: 'LG123456789',
-          ip_address: '192.168.1.100',
-          status: 'ACTIVE',
-          location_id: 1,
-          usage_count: 45,
-          error_count: 0,
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          is_active: true
-        },
-        {
-          id: 2,
-          name: 'Fingerprint Scanner 1',
-          code: 'FP001',
-          hardware_type: 'FINGERPRINT_SCANNER',
-          model: 'SecuGen Hamster Pro',
-          manufacturer: 'SecuGen',
-          serial_number: 'SG987654321',
-          usb_port: 'USB3.0',
-          status: 'ACTIVE',
-          location_id: 1,
-          usage_count: 123,
-          error_count: 2,
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          is_active: true
-        }
-      ];
+      // Import the API service
+      const { hardwareApi } = await import('../../api/api');
+      
+      // Prepare search parameters
+      const searchParams: any = {};
+      if (locationFilter) searchParams.location_id = parseInt(locationFilter);
+      if (statusFilter) searchParams.status = statusFilter;
+      if (typeFilter) searchParams.hardware_type = typeFilter;
+      if (searchFilter) searchParams.search = searchFilter;
 
-      const locationsData: Location[] = [
-        {
-          id: 1,
-          name: 'Main Office',
-          code: 'MAIN',
-          is_active: true,
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z'
-        }
-      ];
+      // Make actual API calls instead of using mock data
+      const [hardwareData, locationsData] = await Promise.all([
+        hardwareApi.getAll(searchParams),
+        // For locations, we'll need to import the locations API - for now using existing approach
+        fetch('/api/v1/locations').then(res => res.json()).catch(() => [])
+      ]);
 
       setHardware(hardwareData);
       setLocations(locationsData);
     } catch (err: any) {
       console.error('Error loading data:', err);
-      setError(err.response?.data?.detail || 'Failed to load data');
+      setError(err.response?.data?.detail || err.message || 'Failed to load data');
+      
+      // Fallback to empty data instead of mock data
+      setHardware([]);
+      setLocations([]);
     } finally {
       setLoading(false);
     }
@@ -228,18 +200,25 @@ const HardwareManagement: React.FC = () => {
       setLoading(true);
       setError('');
 
-      // Mock save - replace with actual API call
+      // Import the API service
+      const { hardwareApi } = await import('../../api/api');
+
       if (isEditing && selectedHardware) {
+        // Update existing hardware
+        await hardwareApi.update(selectedHardware.id, hardwareForm);
         setSuccess('Hardware updated successfully');
       } else {
+        // Create new hardware
+        await hardwareApi.create(hardwareForm);
         setSuccess('Hardware created successfully');
       }
 
       setHardwareDialogOpen(false);
+      resetForm();
       loadData();
     } catch (err: any) {
       console.error('Error saving hardware:', err);
-      setError(err.response?.data?.detail || 'Failed to save hardware');
+      setError(err.response?.data?.detail || err.message || 'Failed to save hardware');
     } finally {
       setLoading(false);
     }
