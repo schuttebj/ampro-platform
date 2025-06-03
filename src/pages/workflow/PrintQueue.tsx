@@ -411,14 +411,13 @@ const PrintQueue: React.FC = () => {
               </TableCell>
               <TableCell>
                 <Typography variant="body2" fontFamily="monospace">
-                  {job.license?.license_number || 'N/A'}
+                  {/* License number not directly available - would need to fetch license data */}
+                  LIC-{job.license_id}
                 </Typography>
               </TableCell>
               <TableCell>
-                {job.application?.citizen ? 
-                  `${job.application.citizen.first_name} ${job.application.citizen.last_name}` : 
-                  'Unknown'
-                }
+                {/* Citizen name not directly available - would need to fetch application/citizen data */}
+                Application ID: {job.application_id}
               </TableCell>
               <TableCell>
                 <Chip
@@ -435,13 +434,13 @@ const PrintQueue: React.FC = () => {
                 />
               </TableCell>
               <TableCell>
-                {job.assigned_user ? (
+                {job.assigned_to ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Avatar sx={{ width: 24, height: 24 }}>
-                      {job.assigned_user.full_name?.charAt(0)}
+                      {job.assigned_to.full_name?.charAt(0)}
                     </Avatar>
                     <Typography variant="body2">
-                      {job.assigned_user.full_name}
+                      {job.assigned_to.full_name}
                     </Typography>
                   </Box>
                 ) : (
@@ -451,7 +450,7 @@ const PrintQueue: React.FC = () => {
                 )}
               </TableCell>
               <TableCell>
-                {new Date(job.created_at).toLocaleDateString()}
+                {new Date(job.queued_at).toLocaleDateString()}
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
