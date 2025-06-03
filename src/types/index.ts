@@ -351,12 +351,12 @@ export interface CollectionPointSummary {
 }
 
 // Enhanced Printer Management Types
-export type PrinterType = 'card_printer' | 'document_printer' | 'photo_printer' | 
-                          'thermal_printer' | 'inkjet_printer' | 'laser_printer';
+export type PrinterType = 'CARD_PRINTER' | 'DOCUMENT_PRINTER' | 'PHOTO_PRINTER' | 
+                          'THERMAL_PRINTER' | 'INKJET_PRINTER' | 'LASER_PRINTER';
 
-export type PrinterStatus = 'active' | 'inactive' | 'maintenance' | 'offline' | 'error';
+export type PrinterStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | 'OFFLINE' | 'ERROR';
 
-export type PrintingType = 'local' | 'centralized' | 'hybrid' | 'disabled';
+export type PrintingType = 'LOCAL' | 'CENTRALIZED' | 'HYBRID' | 'DISABLED';
 
 export interface Printer {
   id: number;
@@ -825,4 +825,128 @@ export interface Location {
   // Related data
   printers?: Printer[];
   assigned_users?: UserLocation[];
+}
+
+// Hardware Types
+export type HardwareType = 'WEBCAM' | 'SECURITY_CAMERA' | 'FINGERPRINT_SCANNER' | 
+                          'IRIS_SCANNER' | 'FACE_RECOGNITION' | 'CARD_READER' | 
+                          'SIGNATURE_PAD' | 'DOCUMENT_SCANNER' | 'BARCODE_SCANNER' | 
+                          'THERMAL_SENSOR' | 'OTHER';
+
+export type HardwareStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | 'OFFLINE' | 'ERROR' | 'CALIBRATING';
+
+export interface Hardware {
+  id: number;
+  name: string;
+  code: string;
+  hardware_type: HardwareType;
+  model?: string;
+  manufacturer?: string;
+  serial_number?: string;
+  ip_address?: string;
+  usb_port?: string;
+  device_id?: string;
+  status: HardwareStatus;
+  capabilities?: Record<string, any>;
+  settings?: Record<string, any>;
+  driver_info?: Record<string, any>;
+  location_id?: number;
+  location?: Location;
+  notes?: string;
+  last_maintenance?: string;
+  next_maintenance?: string;
+  last_online?: string;
+  last_used?: string;
+  usage_count: number;
+  error_count: number;
+  last_error?: string;
+  last_error_time?: string;
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+}
+
+export interface HardwareCreate {
+  name: string;
+  code: string;
+  hardware_type: HardwareType;
+  model?: string;
+  manufacturer?: string;
+  serial_number?: string;
+  ip_address?: string;
+  usb_port?: string;
+  device_id?: string;
+  status?: HardwareStatus;
+  capabilities?: Record<string, any>;
+  settings?: Record<string, any>;
+  driver_info?: Record<string, any>;
+  location_id?: number;
+  notes?: string;
+  last_maintenance?: string;
+  next_maintenance?: string;
+}
+
+export interface HardwareUpdate {
+  name?: string;
+  code?: string;
+  hardware_type?: HardwareType;
+  model?: string;
+  manufacturer?: string;
+  serial_number?: string;
+  ip_address?: string;
+  usb_port?: string;
+  device_id?: string;
+  status?: HardwareStatus;
+  capabilities?: Record<string, any>;
+  settings?: Record<string, any>;
+  driver_info?: Record<string, any>;
+  location_id?: number;
+  notes?: string;
+  last_maintenance?: string;
+  next_maintenance?: string;
+  is_active?: boolean;
+}
+
+export interface HardwareSearchParams {
+  location_id?: number;
+  status?: HardwareStatus;
+  hardware_type?: HardwareType;
+  search?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export interface HardwareStatusUpdate {
+  status: HardwareStatus;
+  notes?: string;
+}
+
+export interface WebcamCaptureRequest {
+  hardware_id: number;
+  citizen_id: number;
+  quality?: 'high' | 'medium' | 'low';
+  format?: 'jpeg' | 'png';
+  metadata?: Record<string, any>;
+}
+
+export interface WebcamCaptureResponse {
+  success: boolean;
+  photo_url?: string;
+  stored_photo_path?: string;
+  processed_photo_path?: string;
+  error_message?: string;
+  hardware_id: number;
+  citizen_id: number;
+  captured_at: string;
+}
+
+export interface HardwareStatistics {
+  total_hardware: number;
+  active_hardware: number;
+  offline_hardware: number;
+  maintenance_hardware: number;
+  error_hardware: number;
+  by_type: Record<string, number>;
+  by_location: Record<string, number>;
+  recent_usage: any[];
 } 

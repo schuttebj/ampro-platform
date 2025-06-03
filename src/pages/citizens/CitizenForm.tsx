@@ -24,6 +24,7 @@ import {
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import api from '../../api/api';
 import ImageUpload from '../../components/ImageUpload';
+import WebcamCapture from '../../components/WebcamCapture';
 
 // Define the Citizen type for form
 interface CitizenFormData {
@@ -414,13 +415,26 @@ const CitizenForm: React.FC = () => {
                   </Typography>
                 </Box>
               )}
+              
+              {/* Webcam Capture Option */}
+              {isEdit && id && (
+                <Box sx={{ mt: 2 }}>
+                  <WebcamCapture
+                    citizenId={parseInt(id)}
+                    onPhotoCapture={handlePhotoChange}
+                    disabled={loading || photoUploading}
+                  />
+                </Box>
+              )}
             </Grid>
             <Grid item xs={12} md={8}>
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>Photo Guidelines:</strong>
+                  <strong>Photo Options:</strong>
                 </Typography>
                 <Typography variant="body2" component="ul" sx={{ mt: 1, pl: 2 }}>
+                  <li><strong>Upload:</strong> Select and upload a photo file from your device</li>
+                  {isEdit && <li><strong>Webcam:</strong> Capture a live photo using connected webcam hardware</li>}
                   <li>Use a recent, clear photo of the citizen</li>
                   <li>Photo should be passport-style (head and shoulders)</li>
                   <li>Ensure good lighting and neutral background</li>
