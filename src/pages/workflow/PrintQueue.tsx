@@ -335,6 +335,7 @@ const PrintQueue: React.FC = () => {
       
       const startPromises = selectedPrintJobs.map(async (printJobId) => {
         return workflowService.startPrintJob(printJobId, {
+          started_at: new Date().toISOString(),
           printer_name: bulkSelectedPrinter
         });
       });
