@@ -129,29 +129,71 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
   
-  // Settings state
-  const [settings, setSettings] = useState<NotificationSettings>({
-    enabled: true,
-    sound_enabled: true,
-    desktop_notifications: enableDesktopNotifications,
-    polling_interval: defaultPollingInterval,
-    categories: {
-      application: { enabled: true, priority_filter: 'all', email_notifications: false },
-      print_job: { enabled: true, priority_filter: 'all', email_notifications: false },
-      shipping: { enabled: true, priority_filter: 'high', email_notifications: true },
-      collection: { enabled: true, priority_filter: 'normal', email_notifications: false },
-      iso_compliance: { enabled: true, priority_filter: 'high', email_notifications: true },
-      system: { enabled: true, priority_filter: 'critical', email_notifications: true },
-      user_action: { enabled: true, priority_filter: 'all', email_notifications: false }
-    },
-    auto_mark_read_delay: 30,
-    max_notifications_display: 50
-  });
+  // Settings state with localStorage persistence
+  const loadSettingsFromStorage = useCallback(() => {
+    try {
+      const savedSettings = localStorage.getItem('ampro-notification-settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        return {
+          ...{
+            enabled: false, // Default to OFF
+            sound_enabled: false,
+            desktop_notifications: false,
+            polling_interval: defaultPollingInterval,
+            categories: {
+              application: { enabled: true, priority_filter: 'all', email_notifications: false },
+              print_job: { enabled: true, priority_filter: 'all', email_notifications: false },
+              shipping: { enabled: true, priority_filter: 'high', email_notifications: true },
+              collection: { enabled: true, priority_filter: 'normal', email_notifications: false },
+              iso_compliance: { enabled: true, priority_filter: 'high', email_notifications: true },
+              system: { enabled: true, priority_filter: 'critical', email_notifications: true },
+              user_action: { enabled: true, priority_filter: 'all', email_notifications: false }
+            },
+            auto_mark_read_delay: 30,
+            max_notifications_display: 50
+          },
+          ...parsed
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to load notification settings from localStorage:', error);
+    }
+    return {
+      enabled: false, // Default to OFF
+      sound_enabled: false,
+      desktop_notifications: false,
+      polling_interval: defaultPollingInterval,
+      categories: {
+        application: { enabled: true, priority_filter: 'all', email_notifications: false },
+        print_job: { enabled: true, priority_filter: 'all', email_notifications: false },
+        shipping: { enabled: true, priority_filter: 'high', email_notifications: true },
+        collection: { enabled: true, priority_filter: 'normal', email_notifications: false },
+        iso_compliance: { enabled: true, priority_filter: 'high', email_notifications: true },
+        system: { enabled: true, priority_filter: 'critical', email_notifications: true },
+        user_action: { enabled: true, priority_filter: 'all', email_notifications: false }
+      },
+      auto_mark_read_delay: 30,
+      max_notifications_display: 50
+    };
+  }, [defaultPollingInterval]);
 
-  // Refs for managing state
+  const [settings, setSettings] = useState<NotificationSettings>(loadSettingsFromStorage);
+
+  // Save settings to localStorage whenever settings change
+  useEffect(() => {
+    try {
+      localStorage.setItem('ampro-notification-settings', JSON.stringify(settings));
+    } catch (error) {
+      console.warn('Failed to save notification settings to localStorage:', error);
+    }
+  }, [settings]);
+
+  // Refs for managing state and deduplication
   const lastNotificationCount = useRef(0);
   const notificationSound = useRef<HTMLAudioElement | null>(null);
   const autoMarkReadTimers = useRef<Map<string, number>>(new Map());
+  const seenNotificationIds = useRef<Set<string>>(new Set()); // Track seen notifications
 
   // Initialize notification sound
   useEffect(() => {
@@ -164,11 +206,11 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
 
   const fetchNotifications = async (): Promise<Notification[]> => {
     try {
-      // Enhanced mock data representing real licensing workflow notifications
+      // Enhanced mock data with STABLE IDs to prevent duplication
       const currentTime = new Date();
-      const mockNotifications: Notification[] = [
+      const baseNotifications: Notification[] = [
         {
-          id: `notif_${Date.now()}_1`,
+          id: 'notif_app_approval_2847', // STABLE ID based on entity
           type: 'success',
           priority: 'normal',
           title: 'Application Approved',
@@ -186,7 +228,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
           group_id: 'app_approvals'
         },
         {
-          id: `notif_${Date.now()}_2`,
+          id: 'notif_print_batch_156', // STABLE ID based on batch
           type: 'info',
           priority: 'normal',
           title: 'Print Job Completed',
@@ -199,104 +241,80 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
           data: {
             entity_id: 156,
             entity_type: 'print_batch',
-            progress: 100,
+            progress: 96,
             auto_dismissible: false
           },
           group_id: 'print_jobs'
         },
         {
-          id: `notif_${Date.now()}_3`,
+          id: 'notif_shipping_3421', // STABLE ID
           type: 'warning',
           priority: 'high',
-          title: 'ISO Compliance Issue Detected',
-          message: 'Critical compliance failure: 3 licenses failed MRZ validation. Immediate attention required.',
-          timestamp: new Date(currentTime.getTime() - 15 * 60 * 1000), // 15 minutes ago
+          title: 'Shipping Delay Alert',
+          message: 'Shipment SH-003421 to Central Collection Point is delayed. Expected delivery: Tomorrow 2PM',
+          timestamp: new Date(currentTime.getTime() - 25 * 60 * 1000), // 25 minutes ago
+          read: false,
+          category: 'shipping',
+          actionUrl: '/workflow/shipping',
+          actionLabel: 'View Shipment',
+          data: {
+            entity_id: 3421,
+            entity_type: 'shipment',
+            estimated_completion: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            auto_dismissible: false
+          }
+        },
+        {
+          id: 'notif_iso_compliance_critical', // STABLE ID
+          type: 'error',
+          priority: 'critical',
+          title: 'Critical ISO Compliance Issue',
+          message: 'License LIC-789456 failed ISO 18013-5 validation. Immediate review required.',
+          timestamp: new Date(currentTime.getTime() - 45 * 60 * 1000), // 45 minutes ago
           read: false,
           category: 'iso_compliance',
           actionUrl: '/workflow/iso-compliance',
           actionLabel: 'Review Compliance',
           data: {
-            entity_id: 0,
-            entity_type: 'compliance_batch',
+            entity_id: 789456,
+            entity_type: 'license',
             auto_dismissible: false
-          },
-          group_id: 'compliance_issues'
+          }
         },
         {
-          id: `notif_${Date.now()}_4`,
-          type: 'error',
-          priority: 'critical',
-          title: 'Printer Malfunction',
-          message: 'Printer HP-DL-001 has encountered a hardware error. Production halted.',
-          timestamp: new Date(currentTime.getTime() - 25 * 60 * 1000), // 25 minutes ago
-          read: false,
-          category: 'system',
-          actionUrl: '/admin/printer-management',
-          actionLabel: 'Check Printer',
-          data: {
-            entity_id: 1,
-            entity_type: 'printer',
-            retry_count: 3,
-            auto_dismissible: false
-          },
-          group_id: 'system_alerts'
-        },
-        {
-          id: `notif_${Date.now()}_5`,
-          type: 'info',
-          priority: 'normal',
-          title: 'Shipping Batch Ready',
-          message: 'Shipment SH-789 (127 licenses) ready for dispatch to Northern Region Collection Center',
-          timestamp: new Date(currentTime.getTime() - 35 * 60 * 1000), // 35 minutes ago
-          read: true,
-          category: 'shipping',
-          actionUrl: '/workflow/shipping',
-          actionLabel: 'View Shipment',
-          data: {
-            entity_id: 789,
-            entity_type: 'shipment',
-            estimated_completion: new Date(currentTime.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days
-            auto_dismissible: true
-          },
-          group_id: 'shipping_updates'
-        },
-        {
-          id: `notif_${Date.now()}_6`,
+          id: 'notif_collection_ready_5632', // STABLE ID
           type: 'success',
-          priority: 'low',
-          title: 'Collection Center Update',
-          message: '45 licenses collected from Main Office today. 12 pending collection.',
-          timestamp: new Date(currentTime.getTime() - 45 * 60 * 1000), // 45 minutes ago
-          read: true,
+          priority: 'normal',
+          title: 'Licenses Ready for Collection',
+          message: '47 licenses are ready for collection at Downtown Office',
+          timestamp: new Date(currentTime.getTime() - 1.5 * 60 * 60 * 1000), // 1.5 hours ago
+          read: false,
           category: 'collection',
           actionUrl: '/workflow/collection',
-          actionLabel: 'View Collections',
+          actionLabel: 'View Collection Dashboard',
           data: {
-            entity_id: 0,
-            entity_type: 'collection_summary',
+            entity_id: 5632,
+            entity_type: 'collection_batch',
             auto_dismissible: true
-          },
-          group_id: 'collection_updates'
+          }
         }
       ];
 
-      // Filter notifications based on settings
-      return mockNotifications
-        .filter(notification => {
-          const categorySettings = settings.categories[notification.category];
-          if (!categorySettings?.enabled) return false;
-          
-          const priorityLevels = ['low', 'normal', 'high', 'critical'];
-          const filterLevel = priorityLevels.indexOf(categorySettings.priority_filter);
-          const notificationLevel = priorityLevels.indexOf(notification.priority);
-          
-          return categorySettings.priority_filter === 'all' || notificationLevel >= filterLevel;
-        })
-        .slice(0, settings.max_notifications_display);
+      // Filter out notifications the user has already seen to prevent duplicates
+      const newNotifications = baseNotifications.filter(notification => 
+        !seenNotificationIds.current.has(notification.id)
+      );
 
+      // Add new notification IDs to seen set
+      newNotifications.forEach(notification => {
+        seenNotificationIds.current.add(notification.id);
+      });
+
+      // Return only new notifications, or empty array if notifications are disabled
+      return settings.enabled ? newNotifications : [];
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      return notifications; // Return current state on error
+      return [];
     }
   };
 
@@ -346,67 +364,87 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     ));
   };
 
+  // Handle new notifications with deduplication and filtering
   const handleNewNotifications = useCallback((newNotifications: Notification[]) => {
-    if (!newNotifications) return;
-
-    const previousIds = new Set(notifications.map((n: Notification) => n.id));
-    const actuallyNewNotifications = newNotifications.filter((n: Notification) => !previousIds.has(n.id));
-
-    if (actuallyNewNotifications.length > 0) {
-      // Handle desktop notifications
-      if (settings.desktop_notifications && 'Notification' in window) {
-        actuallyNewNotifications
-          .filter((n: Notification) => n.priority === 'critical' || n.priority === 'high')
-          .forEach(notification => {
-            if (Notification.permission === 'granted') {
-              new Notification(notification.title, {
-                body: notification.message,
-                icon: '/favicon.ico',
-                tag: notification.id
-              });
-            }
-          });
-      }
-
-      // Play notification sound for high priority items
-      if (settings.sound_enabled && notificationSound.current) {
-        const hasHighPriority = actuallyNewNotifications.some((n: Notification) => 
-          n.priority === 'critical' || n.priority === 'high'
-        );
-        if (hasHighPriority) {
-          notificationSound.current.play().catch((e: any) => console.log('Could not play notification sound:', e));
-        }
-      }
-
-      // Show snackbar for critical/high priority notifications
-      const priorityNotifications = actuallyNewNotifications.filter((n: Notification) => 
-        n.priority === 'critical' || n.priority === 'high'
-      );
-      
-      if (priorityNotifications.length > 0) {
-        setSnackbarQueue((prev: Notification[]) => [...prev, ...priorityNotifications]);
-      }
-
-      // Setup auto-mark as read for auto-dismissible notifications
-      actuallyNewNotifications
-        .filter((n: Notification) => n.data?.auto_dismissible && settings.auto_mark_read_delay > 0)
-        .forEach(notification => {
-          const timer = window.setTimeout(() => {
-            markAsRead(notification.id);
-            autoMarkReadTimers.current.delete(notification.id);
-          }, settings.auto_mark_read_delay * 1000) as unknown as number;
-          
-          autoMarkReadTimers.current.set(notification.id, timer);
-        });
+    if (!newNotifications || newNotifications.length === 0) {
+      return;
     }
 
-    setNotifications(newNotifications);
+    // Filter notifications based on user settings
+    const filteredNotifications = newNotifications.filter(notification => {
+      const categorySettings = settings.categories[notification.category];
+      if (!categorySettings?.enabled) return false;
+      
+      const priorityLevels = ['low', 'normal', 'high', 'critical'];
+      const filterLevel = priorityLevels.indexOf(categorySettings.priority_filter);
+      const notificationLevel = priorityLevels.indexOf(notification.priority);
+      
+      return categorySettings.priority_filter === 'all' || notificationLevel >= filterLevel;
+    });
+
+    if (filteredNotifications.length === 0) {
+      return;
+    }
+
+    // Add to current notifications state
+    setNotifications(prev => {
+      const existingIds = new Set(prev.map(n => n.id));
+      const reallyNewNotifications = filteredNotifications.filter(n => !existingIds.has(n.id));
+      
+      if (reallyNewNotifications.length === 0) {
+        return prev;
+      }
+
+      // Add to snackbar queue for high priority notifications only
+      const priorityNotifications = reallyNewNotifications.filter(n => 
+        ['critical', 'high'].includes(n.priority)
+      );
+      
+      if (priorityNotifications.length > 0 && settings.enabled) {
+        setSnackbarQueue(queue => [...queue, ...priorityNotifications]);
+        
+        // Play sound for critical notifications
+        if (settings.sound_enabled && priorityNotifications.some(n => n.priority === 'critical')) {
+          notificationSound.current?.play().catch(console.warn);
+        }
+
+        // Desktop notifications
+        if (settings.desktop_notifications && 'Notification' in window && Notification.permission === 'granted') {
+          priorityNotifications.forEach(notification => {
+            new Notification(notification.title, {
+              body: notification.message,
+              icon: '/favicon.ico',
+              tag: notification.id,
+              requireInteraction: notification.priority === 'critical'
+            });
+          });
+        }
+
+        // Auto-mark read for auto-dismissible notifications
+        reallyNewNotifications.forEach(notification => {
+          if (notification.data?.auto_dismissible && settings.auto_mark_read_delay > 0) {
+            const timerId = window.setTimeout(() => {
+              markAsRead(notification.id);
+              autoMarkReadTimers.current.delete(notification.id);
+            }, settings.auto_mark_read_delay * 1000) as unknown as number;
+            
+            autoMarkReadTimers.current.set(notification.id, timerId);
+          }
+        });
+      }
+
+      // Return updated notifications, limited by max display setting
+      const updatedNotifications = [...reallyNewNotifications, ...prev]
+        .slice(0, settings.max_notifications_display);
+        
+      return updatedNotifications;
+    });
     
     // Update grouped notifications if grouping is enabled
     if (enableGrouping) {
-      updateNotificationGroups(newNotifications);
+      // This will be handled by the useEffect that watches notifications changes
     }
-  }, [notifications, settings, enableGrouping]);
+  }, [settings, enableGrouping]);
 
   // Enhanced notification fetching with real-world data structure
   const { data: notificationData, isLoading } = useQuery(
