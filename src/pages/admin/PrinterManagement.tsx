@@ -82,17 +82,17 @@ const PrinterManagement: React.FC = () => {
   const [printerForm, setPrinterForm] = useState<PrinterCreate>({
     name: '',
     code: '',
-    printer_type: 'card_printer',
+    printer_type: 'CARD_PRINTER',
     model: '',
     manufacturer: '',
     serial_number: '',
     ip_address: '',
-    status: 'active',
+    status: 'ACTIVE',
     location_id: undefined,
     notes: ''
   });
   const [statusForm, setStatusForm] = useState({
-    status: 'active' as PrinterStatus,
+    status: 'ACTIVE' as PrinterStatus,
     notes: ''
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -130,12 +130,12 @@ const PrinterManagement: React.FC = () => {
     setPrinterForm({
       name: '',
       code: '',
-      printer_type: 'card_printer',
+      printer_type: 'CARD_PRINTER',
       model: '',
       manufacturer: '',
       serial_number: '',
       ip_address: '',
-      status: 'active',
+      status: 'ACTIVE',
       location_id: undefined,
       notes: ''
     });
@@ -251,22 +251,22 @@ const PrinterManagement: React.FC = () => {
 
   const getStatusColor = (status: PrinterStatus) => {
     switch (status) {
-      case 'active': return 'success';
-      case 'inactive': return 'default';
-      case 'maintenance': return 'warning';
-      case 'offline': return 'error';
-      case 'error': return 'error';
+      case 'ACTIVE': return 'success';
+      case 'INACTIVE': return 'default';
+      case 'MAINTENANCE': return 'warning';
+      case 'OFFLINE': return 'error';
+      case 'ERROR': return 'error';
       default: return 'default';
     }
   };
 
   const getStatusIcon = (status: PrinterStatus) => {
     switch (status) {
-      case 'active': return <CheckCircleIcon />;
-      case 'inactive': return <PauseIcon />;
-      case 'maintenance': return <MaintenanceIcon />;
-      case 'offline': return <ErrorIcon />;
-      case 'error': return <WarningIcon />;
+      case 'ACTIVE': return <CheckCircleIcon />;
+      case 'INACTIVE': return <PauseIcon />;
+      case 'MAINTENANCE': return <MaintenanceIcon />;
+      case 'OFFLINE': return <ErrorIcon />;
+      case 'ERROR': return <WarningIcon />;
       default: return <PrinterIcon />;
     }
   };
@@ -322,7 +322,7 @@ const PrinterManagement: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" color="success.main">
-                {printers.filter(p => p.status === 'active').length}
+                {printers.filter(p => p.status === 'ACTIVE').length}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 Active Printers
@@ -334,7 +334,7 @@ const PrinterManagement: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" color="warning.main">
-                {printers.filter(p => p.status === 'maintenance').length}
+                {printers.filter(p => p.status === 'MAINTENANCE').length}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 In Maintenance
@@ -346,7 +346,7 @@ const PrinterManagement: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" color="error.main">
-                {printers.filter(p => p.status === 'offline' || p.status === 'error').length}
+                {printers.filter(p => p.status === 'OFFLINE' || p.status === 'ERROR').length}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 Offline/Error
@@ -399,11 +399,11 @@ const PrinterManagement: React.FC = () => {
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
                   <MenuItem value="">All Status</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="maintenance">Maintenance</MenuItem>
-                  <MenuItem value="offline">Offline</MenuItem>
-                  <MenuItem value="error">Error</MenuItem>
+                  <MenuItem value="ACTIVE">Active</MenuItem>
+                  <MenuItem value="INACTIVE">Inactive</MenuItem>
+                  <MenuItem value="MAINTENANCE">Maintenance</MenuItem>
+                  <MenuItem value="OFFLINE">Offline</MenuItem>
+                  <MenuItem value="ERROR">Error</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -416,12 +416,12 @@ const PrinterManagement: React.FC = () => {
                   onChange={(e) => setTypeFilter(e.target.value)}
                 >
                   <MenuItem value="">All Types</MenuItem>
-                  <MenuItem value="card_printer">Card Printer</MenuItem>
-                  <MenuItem value="document_printer">Document Printer</MenuItem>
-                  <MenuItem value="photo_printer">Photo Printer</MenuItem>
-                  <MenuItem value="thermal_printer">Thermal Printer</MenuItem>
-                  <MenuItem value="inkjet_printer">Inkjet Printer</MenuItem>
-                  <MenuItem value="laser_printer">Laser Printer</MenuItem>
+                  <MenuItem value="CARD_PRINTER">Card Printer</MenuItem>
+                  <MenuItem value="DOCUMENT_PRINTER">Document Printer</MenuItem>
+                  <MenuItem value="PHOTO_PRINTER">Photo Printer</MenuItem>
+                  <MenuItem value="THERMAL_PRINTER">Thermal Printer</MenuItem>
+                  <MenuItem value="INKJET_PRINTER">Inkjet Printer</MenuItem>
+                  <MenuItem value="LASER_PRINTER">Laser Printer</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -611,12 +611,12 @@ const PrinterManagement: React.FC = () => {
                   label="Printer Type"
                   onChange={(e) => setPrinterForm({ ...printerForm, printer_type: e.target.value as PrinterType })}
                 >
-                  <MenuItem value="card_printer">Card Printer</MenuItem>
-                  <MenuItem value="document_printer">Document Printer</MenuItem>
-                  <MenuItem value="photo_printer">Photo Printer</MenuItem>
-                  <MenuItem value="thermal_printer">Thermal Printer</MenuItem>
-                  <MenuItem value="inkjet_printer">Inkjet Printer</MenuItem>
-                  <MenuItem value="laser_printer">Laser Printer</MenuItem>
+                  <MenuItem value="CARD_PRINTER">Card Printer</MenuItem>
+                  <MenuItem value="DOCUMENT_PRINTER">Document Printer</MenuItem>
+                  <MenuItem value="PHOTO_PRINTER">Photo Printer</MenuItem>
+                  <MenuItem value="THERMAL_PRINTER">Thermal Printer</MenuItem>
+                  <MenuItem value="INKJET_PRINTER">Inkjet Printer</MenuItem>
+                  <MenuItem value="LASER_PRINTER">Laser Printer</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -628,11 +628,11 @@ const PrinterManagement: React.FC = () => {
                   label="Status"
                   onChange={(e) => setPrinterForm({ ...printerForm, status: e.target.value as PrinterStatus })}
                 >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="maintenance">Maintenance</MenuItem>
-                  <MenuItem value="offline">Offline</MenuItem>
-                  <MenuItem value="error">Error</MenuItem>
+                  <MenuItem value="ACTIVE">Active</MenuItem>
+                  <MenuItem value="INACTIVE">Inactive</MenuItem>
+                  <MenuItem value="MAINTENANCE">Maintenance</MenuItem>
+                  <MenuItem value="OFFLINE">Offline</MenuItem>
+                  <MenuItem value="ERROR">Error</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -756,11 +756,11 @@ const PrinterManagement: React.FC = () => {
                   label="Status"
                   onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value as PrinterStatus })}
                 >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="maintenance">Maintenance</MenuItem>
-                  <MenuItem value="offline">Offline</MenuItem>
-                  <MenuItem value="error">Error</MenuItem>
+                  <MenuItem value="ACTIVE">Active</MenuItem>
+                  <MenuItem value="INACTIVE">Inactive</MenuItem>
+                  <MenuItem value="MAINTENANCE">Maintenance</MenuItem>
+                  <MenuItem value="OFFLINE">Offline</MenuItem>
+                  <MenuItem value="ERROR">Error</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
