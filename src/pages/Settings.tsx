@@ -39,7 +39,7 @@ import {
   Security as SecurityIcon,
   Notifications as NotificationsIcon,
   Palette as ThemeIcon,
-  System as SystemIcon,
+  Settings as SystemIcon,
   Save as SaveIcon,
   Edit as EditIcon,
   PhotoCamera as PhotoIcon,
