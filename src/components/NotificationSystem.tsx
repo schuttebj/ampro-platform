@@ -874,54 +874,19 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        {currentSnackbar ? (
-          <Alert 
-            onClose={handleSnackbarClose} 
-            severity={currentSnackbar.type}
-            variant="filled"
-            action={
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                {currentSnackbar.actionUrl ? (
-                  <Button
-                    size="small"
-                    color="inherit"
-                    onClick={() => {
-                      handleNotificationAction(currentSnackbar);
-                      handleSnackbarClose();
-                    }}
-                  >
-                    {currentSnackbar.actionLabel || 'View'}
-                  </Button>
-                ) : null}
-                <IconButton
-                  size="small"
-                  color="inherit"
-                  onClick={handleSnackbarClose}
-                >
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            }
-            sx={{ minWidth: 400 }}
-          >
-            <Box>
-              <Typography variant="body2" fontWeight="bold">
-                {currentSnackbar.title}
-              </Typography>
-              <Typography variant="body2">
-                {currentSnackbar.message}
-              </Typography>
-              {currentSnackbar.data?.estimated_completion ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                  <ScheduleIcon fontSize="small" />
-                  <Typography variant="caption">
-                    ETA: {new Date(currentSnackbar.data.estimated_completion).toLocaleString()}
-                  </Typography>
-                </Box>
-              ) : null}
-            </Box>
-          </Alert>
-        ) : null}
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={currentSnackbar?.type || 'info'}
+          variant="filled"
+          sx={{ minWidth: 400 }}
+        >
+          <Typography variant="body2" fontWeight="bold">
+            {currentSnackbar?.title || ''}
+          </Typography>
+          <Typography variant="body2">
+            {currentSnackbar?.message || ''}
+          </Typography>
+        </Alert>
       </Snackbar>
     </>
   );
