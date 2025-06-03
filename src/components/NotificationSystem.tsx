@@ -818,7 +818,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
 
             {/* Category Settings */}
             <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Category Settings</Typography>
-            {Object.entries(settings.categories).map(([category, categorySettings]) => (
+            {Object.entries(settings.categories).map(([category, categorySettings]: [string, any]) => (
               <Accordion key={category}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography sx={{ textTransform: 'capitalize' }}>
@@ -830,7 +830,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
                     control={
                       <Switch
                         checked={categorySettings.enabled}
-                        onChange={(e) => updateSettings({
+                        onChange={(e: any) => updateSettings({
                           categories: {
                             ...settings.categories,
                             [category]: { ...categorySettings, enabled: e.target.checked }
@@ -844,7 +844,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
                     control={
                       <Switch
                         checked={categorySettings.email_notifications}
-                        onChange={(e) => updateSettings({
+                        onChange={(e: any) => updateSettings({
                           categories: {
                             ...settings.categories,
                             [category]: { ...categorySettings, email_notifications: e.target.checked }
@@ -912,10 +912,12 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
                 {currentSnackbar.message}
               </Typography>
               {currentSnackbar.data?.estimated_completion && (
-                <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                   <ScheduleIcon fontSize="small" />
-                  ETA: {new Date(currentSnackbar.data.estimated_completion).toLocaleString()}
-                </Typography>
+                  <Typography variant="caption">
+                    ETA: {new Date(currentSnackbar.data.estimated_completion).toLocaleString()}
+                  </Typography>
+                </Box>
               )}
             </Box>
           </Alert>
