@@ -63,9 +63,9 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         const detectionResponse = await hardwareApi.webcam.detect();
         
         if (detectionResponse.success && detectionResponse.webcams && detectionResponse.webcams.length > 0) {
-          // Convert detected webcams to our Hardware format
+          // Convert detected webcams to our Hardware format using numeric IDs
           const detectedWebcams: Hardware[] = detectionResponse.webcams.map((webcam: any, index: number) => ({
-            id: `detected_${index}`, // Use a special ID for detected webcams
+            id: 9000 + index, // Use high numeric IDs to avoid conflicts with database IDs
             name: webcam.name || `Detected Webcam ${index + 1}`,
             code: webcam.device_id || `DETECTED_${index}`,
             hardware_type: 'WEBCAM' as const,
@@ -137,7 +137,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       const { hardwareApi } = await import('../api/api');
 
       // Find the selected webcam to get its details
-      const selectedWebcamData = webcams.find(w => w.id === selectedWebcam);
+      const selectedWebcamData = webcams.find((w: Hardware) => w.id === selectedWebcam);
       if (!selectedWebcamData) {
         setError('Selected webcam not found');
         return;
@@ -145,19 +145,18 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
 
       // For detected webcams, we need to handle them differently
       let captureParams;
-      if (typeof selectedWebcam === 'string' && selectedWebcam.startsWith('detected_')) {
+      if (selectedWebcam >= 9000) {
         // This is a detected webcam - use device_id for capture
         captureParams = {
           hardware_id: selectedWebcamData.device_id || '0', // Use device_id from detected webcam
           citizen_id: citizenId,
           quality: 'high' as const,
-          format: 'jpeg' as const,
-          is_detected_webcam: true // Flag to indicate this is a detected webcam
+          format: 'jpeg' as const
         };
       } else {
         // This is a configured hardware webcam from database
         captureParams = {
-          hardware_id: selectedWebcam as number,
+          hardware_id: selectedWebcam,
           citizen_id: citizenId,
           quality: 'high' as const,
           format: 'jpeg' as const
@@ -260,7 +259,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                     <Select
                       value={selectedWebcam || ''}
                       label="Select Webcam"
-                      onChange={(e) => setSelectedWebcam(Number(e.target.value))}
+                      onChange={(e) => setSelectedWebcam(e.target.value ? Number(e.target.value) : null)}
                     >
                       {webcams.map((webcam) => (
                         <MenuItem key={webcam.id} value={webcam.id}>
