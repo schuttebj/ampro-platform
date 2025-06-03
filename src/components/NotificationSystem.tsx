@@ -312,7 +312,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     // Clear auto-mark timer if exists
     const timer = autoMarkReadTimers.current.get(notificationId);
     if (timer) {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       autoMarkReadTimers.current.delete(notificationId);
     }
   };
@@ -391,10 +391,10 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
       actuallyNewNotifications
         .filter((n: Notification) => n.data?.auto_dismissible && settings.auto_mark_read_delay > 0)
         .forEach(notification => {
-          const timer = setTimeout(() => {
+          const timer = window.setTimeout(() => {
             markAsRead(notification.id);
             autoMarkReadTimers.current.delete(notification.id);
-          }, settings.auto_mark_read_delay * 1000);
+          }, settings.auto_mark_read_delay * 1000) as unknown as number;
           
           autoMarkReadTimers.current.set(notification.id, timer);
         });
@@ -458,7 +458,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     );
     
     // Clear all auto-mark timers
-    autoMarkReadTimers.current.forEach((timer: number) => clearTimeout(timer));
+    autoMarkReadTimers.current.forEach((timer: number) => window.clearTimeout(timer));
     autoMarkReadTimers.current.clear();
   };
 
@@ -468,7 +468,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     // Clear auto-mark timer if exists
     const timer = autoMarkReadTimers.current.get(notificationId);
     if (timer) {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       autoMarkReadTimers.current.delete(notificationId);
     }
   };
