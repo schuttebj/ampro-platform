@@ -177,14 +177,19 @@ export const hardwareApi = {
   // Get webcam-specific functions
   webcam: {
     // Detect available webcams
-    detect: async (): Promise<any[]> => {
-      const response = await api.get('/hardware/webcam/detect');
+    detect: async (): Promise<{
+      success: boolean;
+      webcams: any[];
+      count: number;
+      detected_at: string;
+    }> => {
+      const response = await api.get('/hardware/webcams/detect');
       return response.data;
     },
 
     // Capture photo using webcam
     capture: async (params: {
-      hardware_id: number;
+      hardware_id: number | string;
       citizen_id: number;
       quality?: string;
       format?: string;

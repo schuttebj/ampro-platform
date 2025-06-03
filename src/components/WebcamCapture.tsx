@@ -55,10 +55,48 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       setLoading(true);
       setError('');
       
-      // Import the API service and get webcam hardware devices
+      // Import the API service and detect actual physical webcams
       const { hardwareApi } = await import('../api/api');
       
-      // Get all active webcam hardware devices
+      try {
+        // First, try to detect actual physical webcams connected to the system
+        const detectionResponse = await hardwareApi.webcam.detect();
+        
+        if (detectionResponse.success && detectionResponse.webcams && detectionResponse.webcams.length > 0) {
+          // Convert detected webcams to our Hardware format
+          const detectedWebcams: Hardware[] = detectionResponse.webcams.map((webcam: any, index: number) => ({
+            id: `detected_${index}`, // Use a special ID for detected webcams
+            name: webcam.name || `Detected Webcam ${index + 1}`,
+            code: webcam.device_id || `DETECTED_${index}`,
+            hardware_type: 'WEBCAM' as const,
+            model: webcam.capabilities?.max_resolution || 'Unknown',
+            manufacturer: webcam.manufacturer || 'Unknown',
+            serial_number: '',
+            device_id: webcam.device_id,
+            status: 'ACTIVE' as const,
+            location_id: undefined,
+            usage_count: 0,
+            error_count: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            is_active: true,
+            capabilities: webcam.capabilities
+          }));
+          
+          setWebcams(detectedWebcams);
+          
+          // Auto-select first detected webcam
+          if (detectedWebcams.length > 0) {
+            setSelectedWebcam(detectedWebcams[0].id);
+          }
+          
+          return; // Successfully loaded detected webcams
+        }
+      } catch (detectionError) {
+        console.warn('Physical webcam detection failed, falling back to database webcams:', detectionError);
+      }
+      
+      // Fallback: Get configured webcam hardware devices from database
       const allHardware = await hardwareApi.getAll({
         hardware_type: 'WEBCAM',
         status: 'ACTIVE'
@@ -70,6 +108,12 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       if (allHardware.length > 0) {
         setSelectedWebcam(allHardware[0].id);
       }
+      
+      // Show info message about using configured webcams vs detected ones
+      if (allHardware.length > 0) {
+        console.info('Using configured webcam devices from database. To use physical webcam detection, ensure webcams are connected and drivers are installed.');
+      }
+      
     } catch (err: any) {
       console.error('Error loading webcams:', err);
       setError(err.response?.data?.detail || err.message || 'Failed to load available webcams');
@@ -92,12 +136,35 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       // Import the API service and capture photo
       const { hardwareApi } = await import('../api/api');
 
-      const response = await hardwareApi.webcam.capture({
-        hardware_id: selectedWebcam,
-        citizen_id: citizenId,
-        quality: 'high',
-        format: 'jpeg'
-      });
+      // Find the selected webcam to get its details
+      const selectedWebcamData = webcams.find(w => w.id === selectedWebcam);
+      if (!selectedWebcamData) {
+        setError('Selected webcam not found');
+        return;
+      }
+
+      // For detected webcams, we need to handle them differently
+      let captureParams;
+      if (typeof selectedWebcam === 'string' && selectedWebcam.startsWith('detected_')) {
+        // This is a detected webcam - use device_id for capture
+        captureParams = {
+          hardware_id: selectedWebcamData.device_id || '0', // Use device_id from detected webcam
+          citizen_id: citizenId,
+          quality: 'high' as const,
+          format: 'jpeg' as const,
+          is_detected_webcam: true // Flag to indicate this is a detected webcam
+        };
+      } else {
+        // This is a configured hardware webcam from database
+        captureParams = {
+          hardware_id: selectedWebcam as number,
+          citizen_id: citizenId,
+          quality: 'high' as const,
+          format: 'jpeg' as const
+        };
+      }
+
+      const response = await hardwareApi.webcam.capture(captureParams);
 
       if (response.success && response.photo_url) {
         setSuccess('Photo captured successfully!');
