@@ -874,14 +874,14 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        {currentSnackbar && (
+        {currentSnackbar ? (
           <Alert 
             onClose={handleSnackbarClose} 
             severity={currentSnackbar.type}
             variant="filled"
             action={
               <Box sx={{ display: 'flex', gap: 1 }}>
-                {currentSnackbar.actionUrl && (
+                {currentSnackbar.actionUrl ? (
                   <Button
                     size="small"
                     color="inherit"
@@ -892,7 +892,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
                   >
                     {currentSnackbar.actionLabel || 'View'}
                   </Button>
-                )}
+                ) : null}
                 <IconButton
                   size="small"
                   color="inherit"
@@ -911,17 +911,17 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
               <Typography variant="body2">
                 {currentSnackbar.message}
               </Typography>
-              {currentSnackbar.data?.estimated_completion && (
+              {currentSnackbar.data?.estimated_completion ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                   <ScheduleIcon fontSize="small" />
                   <Typography variant="caption">
                     ETA: {new Date(currentSnackbar.data.estimated_completion).toLocaleString()}
                   </Typography>
                 </Box>
-              )}
+              ) : null}
             </Box>
           </Alert>
-        )}
+        ) : null}
       </Snackbar>
     </>
   );
