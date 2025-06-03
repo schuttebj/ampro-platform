@@ -1219,7 +1219,7 @@ const ApplicationReview: React.FC = () => {
           <Button 
             variant="contained" 
             color="success"
-            onClick={handleBatchProcessWithRules}
+            onClick={() => handleBatchProcessWithRules(false)}
             disabled={!bulkCollectionPoint || bulkProcessing}
           >
             {bulkProcessing ? 'Processing...' : `Approve ${selectedApplications.length} Applications`}
