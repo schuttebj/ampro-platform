@@ -831,7 +831,11 @@ const Dashboard: React.FC = () => {
                   {alert.dismissible && (
                     <IconButton 
                       size="small"
-                      onClick={() => setDismissedAlerts(prev => new Set([...prev, alert.id]))}
+                      onClick={() => setDismissedAlerts(prev => {
+                        const newSet = new Set(prev);
+                        newSet.add(alert.id);
+                        return newSet;
+                      })}
                     >
                       <ClearIcon />
                     </IconButton>
