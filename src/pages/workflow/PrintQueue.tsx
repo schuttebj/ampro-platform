@@ -307,7 +307,7 @@ const PrintQueue: React.FC = () => {
       
       const assignmentPromises = selectedPrintJobs.map(async (printJobId) => {
         return workflowService.assignPrintJob(printJobId, {
-          user_id: parseInt(bulkAssigneeUserId)
+          assigned_to_user_id: parseInt(bulkAssigneeUserId)
         });
       });
       
