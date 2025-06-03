@@ -151,7 +151,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
   // Refs for managing state
   const lastNotificationCount = useRef(0);
   const notificationSound = useRef<HTMLAudioElement | null>(null);
-  const autoMarkReadTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const autoMarkReadTimers = useRef<Map<string, number>>(new Map());
 
   // Initialize notification sound
   useEffect(() => {
@@ -161,23 +161,6 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
       notificationSound.current.volume = 0.3;
     }
   }, [settings.sound_enabled]);
-
-  // Enhanced notification fetching with real-world data structure
-  const { data: notificationData, isLoading } = useQuery(
-    'notifications',
-    fetchNotifications,
-    {
-      enabled: settings.enabled && enableRealTime,
-      refetchInterval: settings.polling_interval,
-      refetchIntervalInBackground: true,
-      onSuccess: handleNewNotifications,
-      onError: (error) => {
-        console.error('Failed to fetch notifications:', error);
-        // Fallback to less frequent polling on error
-        queryClient.setQueryData('notifications', notifications);
-      }
-    }
-  );
 
   const fetchNotifications = async (): Promise<Notification[]> => {
     try {
@@ -317,67 +300,22 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     }
   };
 
-  const handleNewNotifications = useCallback((newNotifications: Notification[]) => {
-    if (!newNotifications) return;
-
-    const previousIds = new Set(notifications.map(n => n.id));
-    const actuallyNewNotifications = newNotifications.filter(n => !previousIds.has(n.id));
-
-    if (actuallyNewNotifications.length > 0) {
-      // Handle desktop notifications
-      if (settings.desktop_notifications && 'Notification' in window) {
-        actuallyNewNotifications
-          .filter(n => n.priority === 'critical' || n.priority === 'high')
-          .forEach(notification => {
-            if (Notification.permission === 'granted') {
-              new Notification(notification.title, {
-                body: notification.message,
-                icon: '/favicon.ico',
-                tag: notification.id
-              });
-            }
-          });
-      }
-
-      // Play notification sound for high priority items
-      if (settings.sound_enabled && notificationSound.current) {
-        const hasHighPriority = actuallyNewNotifications.some(n => 
-          n.priority === 'critical' || n.priority === 'high'
-        );
-        if (hasHighPriority) {
-          notificationSound.current.play().catch(e => console.log('Could not play notification sound:', e));
-        }
-      }
-
-      // Show snackbar for critical/high priority notifications
-      const priorityNotifications = actuallyNewNotifications.filter(n => 
-        n.priority === 'critical' || n.priority === 'high'
-      );
-      
-      if (priorityNotifications.length > 0) {
-        setSnackbarQueue(prev => [...prev, ...priorityNotifications]);
-      }
-
-      // Setup auto-mark as read for auto-dismissible notifications
-      actuallyNewNotifications
-        .filter(n => n.data?.auto_dismissible && settings.auto_mark_read_delay > 0)
-        .forEach(notification => {
-          const timer = setTimeout(() => {
-            markAsRead(notification.id);
-            autoMarkReadTimers.current.delete(notification.id);
-          }, settings.auto_mark_read_delay * 1000);
-          
-          autoMarkReadTimers.current.set(notification.id, timer);
-        });
-    }
-
-    setNotifications(newNotifications);
+  const markAsRead = (notificationId: string) => {
+    setNotifications((prev: Notification[]) => 
+      prev.map(notification => 
+        notification.id === notificationId 
+          ? { ...notification, read: true }
+          : notification
+      )
+    );
     
-    // Update grouped notifications if grouping is enabled
-    if (enableGrouping) {
-      updateNotificationGroups(newNotifications);
+    // Clear auto-mark timer if exists
+    const timer = autoMarkReadTimers.current.get(notificationId);
+    if (timer) {
+      clearTimeout(timer);
+      autoMarkReadTimers.current.delete(notificationId);
     }
-  }, [notifications, settings, enableGrouping]);
+  };
 
   const updateNotificationGroups = (notifications: Notification[]) => {
     const groups = notifications.reduce((acc, notification) => {
@@ -408,6 +346,85 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     ));
   };
 
+  const handleNewNotifications = useCallback((newNotifications: Notification[]) => {
+    if (!newNotifications) return;
+
+    const previousIds = new Set(notifications.map((n: Notification) => n.id));
+    const actuallyNewNotifications = newNotifications.filter((n: Notification) => !previousIds.has(n.id));
+
+    if (actuallyNewNotifications.length > 0) {
+      // Handle desktop notifications
+      if (settings.desktop_notifications && 'Notification' in window) {
+        actuallyNewNotifications
+          .filter((n: Notification) => n.priority === 'critical' || n.priority === 'high')
+          .forEach(notification => {
+            if (Notification.permission === 'granted') {
+              new Notification(notification.title, {
+                body: notification.message,
+                icon: '/favicon.ico',
+                tag: notification.id
+              });
+            }
+          });
+      }
+
+      // Play notification sound for high priority items
+      if (settings.sound_enabled && notificationSound.current) {
+        const hasHighPriority = actuallyNewNotifications.some((n: Notification) => 
+          n.priority === 'critical' || n.priority === 'high'
+        );
+        if (hasHighPriority) {
+          notificationSound.current.play().catch((e: any) => console.log('Could not play notification sound:', e));
+        }
+      }
+
+      // Show snackbar for critical/high priority notifications
+      const priorityNotifications = actuallyNewNotifications.filter((n: Notification) => 
+        n.priority === 'critical' || n.priority === 'high'
+      );
+      
+      if (priorityNotifications.length > 0) {
+        setSnackbarQueue((prev: Notification[]) => [...prev, ...priorityNotifications]);
+      }
+
+      // Setup auto-mark as read for auto-dismissible notifications
+      actuallyNewNotifications
+        .filter((n: Notification) => n.data?.auto_dismissible && settings.auto_mark_read_delay > 0)
+        .forEach(notification => {
+          const timer = setTimeout(() => {
+            markAsRead(notification.id);
+            autoMarkReadTimers.current.delete(notification.id);
+          }, settings.auto_mark_read_delay * 1000);
+          
+          autoMarkReadTimers.current.set(notification.id, timer);
+        });
+    }
+
+    setNotifications(newNotifications);
+    
+    // Update grouped notifications if grouping is enabled
+    if (enableGrouping) {
+      updateNotificationGroups(newNotifications);
+    }
+  }, [notifications, settings, enableGrouping]);
+
+  // Enhanced notification fetching with real-world data structure
+  const { data: notificationData, isLoading } = useQuery(
+    'notifications',
+    fetchNotifications,
+    {
+      enabled: settings.enabled && enableRealTime,
+      refetchInterval: settings.polling_interval,
+      refetchIntervalInBackground: true,
+      onSuccess: handleNewNotifications,
+      onError: (error: any) => {
+        console.error('Failed to fetch notifications:', error);
+        // Fallback to less frequent polling on error
+        queryClient.setQueryData('notifications', notifications);
+      }
+    }
+  );
+
   // Process snackbar queue
   useEffect(() => {
     if (snackbarQueue.length > 0 && !currentSnackbar) {
@@ -435,35 +452,18 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     setCurrentSnackbar(null);
   };
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-    
-    // Clear auto-mark timer if exists
-    const timer = autoMarkReadTimers.current.get(notificationId);
-    if (timer) {
-      clearTimeout(timer);
-      autoMarkReadTimers.current.delete(notificationId);
-    }
-  };
-
   const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
+    setNotifications((prev: Notification[]) => 
+      prev.map((notification: Notification) => ({ ...notification, read: true }))
     );
     
     // Clear all auto-mark timers
-    autoMarkReadTimers.current.forEach(timer => clearTimeout(timer));
+    autoMarkReadTimers.current.forEach((timer: number) => clearTimeout(timer));
     autoMarkReadTimers.current.clear();
   };
 
   const dismissNotification = (notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    setNotifications((prev: Notification[]) => prev.filter((n: Notification) => n.id !== notificationId));
     
     // Clear auto-mark timer if exists
     const timer = autoMarkReadTimers.current.get(notificationId);
