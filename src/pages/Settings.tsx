@@ -83,7 +83,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const Settings: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -91,12 +91,12 @@ const Settings: React.FC = () => {
   
   // Profile settings
   const [profileForm, setProfileForm] = useState({
-    first_name: user?.first_name || '',
-    last_name: user?.last_name || '',
+    first_name: user?.full_name?.split(' ')[0] || '',
+    last_name: user?.full_name?.split(' ').slice(1).join(' ') || '',
     email: user?.email || '',
-    phone: user?.phone || '',
-    department: user?.department || '',
-    location_id: user?.location_id || '',
+    phone: '',
+    department: '',
+    location_id: '',
   });
 
   // Security settings
@@ -178,7 +178,7 @@ const Settings: React.FC = () => {
       setLoading(true);
       setError('');
       
-      // Update user profile via API
+      // TODO: Implement profile update API call when backend endpoint is available
       // const updatedUser = await authService.updateProfile(profileForm);
       // updateUser(updatedUser);
       
@@ -335,15 +335,14 @@ const Settings: React.FC = () => {
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Avatar
                     sx={{ width: 100, height: 100, mx: 'auto', mb: 2 }}
-                    src={user?.avatar_url}
                   >
-                    {user?.first_name?.[0]}{user?.last_name?.[0]}
+                    {user?.full_name?.split(' ').map(n => n[0]).join('') || user?.username?.[0] || '?'}
                   </Avatar>
                   <Typography variant="h6">
-                    {user?.first_name} {user?.last_name}
+                    {user?.full_name || user?.username || 'User'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {user?.role?.replace('_', ' ').toUpperCase()}
+                    {user?.role?.replace('_', ' ').toUpperCase() || 'USER'}
                   </Typography>
                   <Chip
                     label={user?.is_active ? 'Active' : 'Inactive'}
