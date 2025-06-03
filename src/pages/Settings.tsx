@@ -474,10 +474,10 @@ const Settings: React.FC = () => {
                     Session Information
                   </Typography>
                   <Typography variant="body2" gutterBottom>
-                    <strong>Last Login:</strong> {user?.last_login || 'N/A'}
+                    <strong>Username:</strong> {user?.username || 'N/A'}
                   </Typography>
                   <Typography variant="body2" gutterBottom>
-                    <strong>Account Created:</strong> {user?.created_at || 'N/A'}
+                    <strong>Email:</strong> {user?.email || 'N/A'}
                   </Typography>
                   <Typography variant="body2" gutterBottom>
                     <strong>Session Expires:</strong> In 2 hours
