@@ -60,6 +60,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
+import { dashboardService } from '../api/services';
 
 // Dashboard Statistics Interface
 interface DashboardStats {
@@ -113,7 +114,7 @@ interface RecentActivity {
   action: string;
   entity_id: string;
   user: string;
-  timestamp: Date;
+  timestamp: string;
   status: 'success' | 'warning' | 'error' | 'info';
   details?: string;
 }
@@ -133,7 +134,7 @@ interface SystemAlert {
   type: 'info' | 'warning' | 'error' | 'success';
   title: string;
   message: string;
-  timestamp: Date;
+  timestamp: string;
   actionUrl?: string;
   actionLabel?: string;
   dismissible: boolean;
@@ -149,169 +150,43 @@ const Dashboard: React.FC = () => {
   const [alertsDialogOpen, setAlertsDialogOpen] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
-  // Mock fetch functions (replace with real API calls)
-  const fetchDashboardStats = async (): Promise<DashboardStats> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return {
-      citizens: {
-        total: 15847,
-        new_today: 23,
-        active: 15632
-      },
-      applications: {
-        total: 8945,
-        pending_review: 127,
-        approved_today: 45,
-        rejected_today: 3,
-        pending_documents: 67,
-        pending_payment: 89
-      },
-      licenses: {
-        total_active: 12456,
-        issued_today: 38,
-        expiring_30_days: 234,
-        suspended: 23,
-        pending_collection: 156
-      },
-      print_jobs: {
-        queued: 42,
-        printing: 8,
-        completed_today: 156,
-        failed: 3
-      },
-      shipping: {
-        pending: 67,
-        in_transit: 23,
-        delivered_today: 89,
-        failed: 2
-      },
-      compliance: {
-        compliant_rate: 96.8,
-        critical_issues: 5,
-        pending_validation: 23
-      },
-      system_performance: {
-        avg_processing_time: 2.3,
-        uptime_percentage: 99.7,
-        queue_health: 'good'
-      }
-    };
-  };
-
-  const fetchRecentActivities = async (): Promise<RecentActivity[]> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const now = new Date();
-    return [
-      {
-        id: 'act_1',
-        type: 'application',
-        action: 'Application Approved',
-        entity_id: 'APP-008945',
-        user: 'Sarah Johnson',
-        timestamp: new Date(now.getTime() - 15 * 60 * 1000),
-        status: 'success',
-        details: 'Class B Commercial License application approved and forwarded to print queue'
-      },
-      {
-        id: 'act_2',
-        type: 'print',
-        action: 'Batch Print Completed',
-        entity_id: 'BATCH-156',
-        user: 'System',
-        timestamp: new Date(now.getTime() - 25 * 60 * 1000),
-        status: 'success',
-        details: '45 licenses printed successfully'
-      },
-      {
-        id: 'act_3',
-        type: 'compliance',
-        action: 'ISO Compliance Issue',
-        entity_id: 'LIC-789456',
-        user: 'System',
-        timestamp: new Date(now.getTime() - 35 * 60 * 1000),
-        status: 'error',
-        details: 'Failed ISO 18013-5 validation - requires immediate review'
-      },
-      {
-        id: 'act_4',
-        type: 'shipping',
-        action: 'Shipment Delivered',
-        entity_id: 'SH-003421',
-        user: 'Courier Services',
-        timestamp: new Date(now.getTime() - 45 * 60 * 1000),
-        status: 'success',
-        details: '127 licenses delivered to Northern Collection Point'
-      },
-      {
-        id: 'act_5',
-        type: 'license',
-        action: 'License Collection',
-        entity_id: 'LIC-567890',
-        user: 'Mike Chen',
-        timestamp: new Date(now.getTime() - 55 * 60 * 1000),
-        status: 'success',
-        details: 'License collected by citizen at Downtown Office'
-      }
-    ];
-  };
-
-  const fetchSystemAlerts = async (): Promise<SystemAlert[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const now = new Date();
-    return [
-      {
-        id: 'alert_1',
-        type: 'error',
-        title: 'Printer Hardware Issue',
-        message: 'Primary license printer HP-DL-001 has encountered a hardware error. Production temporarily halted.',
-        timestamp: new Date(now.getTime() - 10 * 60 * 1000),
-        actionUrl: '/admin/printer-management',
-        actionLabel: 'Manage Printers',
-        dismissible: false
-      },
-      {
-        id: 'alert_2',
-        type: 'warning',
-        title: 'High Queue Volume',
-        message: 'Print queue has 127+ pending jobs. Consider increasing printing capacity.',
-        timestamp: new Date(now.getTime() - 30 * 60 * 1000),
-        actionUrl: '/workflow/print-queue',
-        actionLabel: 'View Queue',
-        dismissible: true
-      },
-      {
-        id: 'alert_3',
-        type: 'info',
-        title: 'Scheduled Maintenance',
-        message: 'System maintenance scheduled for Sunday 2:00 AM - 4:00 AM.',
-        timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-        dismissible: true
-      }
-    ];
-  };
-
-  // Data fetching with React Query
+  // Data fetching with React Query using real API calls
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery(
     'dashboard-stats',
-    fetchDashboardStats,
-    { refetchInterval: 30000 } // Refresh every 30 seconds
+    () => dashboardService.getStats(),
+    { 
+      refetchInterval: 30000, // Refresh every 30 seconds
+      onError: (error) => {
+        console.error('Failed to fetch dashboard stats:', error);
+      }
+    }
   );
 
-  const { data: activities, isLoading: activitiesLoading } = useQuery(
+  const { data: activitiesData, isLoading: activitiesLoading } = useQuery(
     'recent-activities',
-    fetchRecentActivities,
-    { refetchInterval: 10000 } // Refresh every 10 seconds
+    () => dashboardService.getRecentActivities(10),
+    { 
+      refetchInterval: 10000, // Refresh every 10 seconds
+      onError: (error) => {
+        console.error('Failed to fetch recent activities:', error);
+      }
+    }
   );
 
-  const { data: alerts, isLoading: alertsLoading } = useQuery(
+  const { data: alertsData, isLoading: alertsLoading } = useQuery(
     'system-alerts',
-    fetchSystemAlerts,
-    { refetchInterval: 15000 } // Refresh every 15 seconds
+    () => dashboardService.getSystemAlerts(),
+    { 
+      refetchInterval: 15000, // Refresh every 15 seconds
+      onError: (error) => {
+        console.error('Failed to fetch system alerts:', error);
+      }
+    }
   );
+
+  // Extract data from API responses
+  const activities = activitiesData?.activities || [];
+  const alerts = alertsData?.alerts || [];
 
   // Quick Actions Configuration
   const quickActions: QuickAction[] = [
@@ -368,9 +243,9 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const formatTimeAgo = (timestamp: Date) => {
+  const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - timestamp.getTime()) / (1000 * 60));
+    const diffInMinutes = Math.floor((now.getTime() - new Date(timestamp).getTime()) / (1000 * 60));
     
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
@@ -391,7 +266,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const activeAlerts = alerts?.filter(alert => !dismissedAlerts.has(alert.id)) || [];
+  const activeAlerts = alerts.filter(alert => !dismissedAlerts.has(alert.id)) || [];
   const criticalAlerts = activeAlerts.filter(alert => alert.type === 'error');
 
   if (statsLoading) {
@@ -696,7 +571,7 @@ const Dashboard: React.FC = () => {
                 </Box>
               ) : (
                 <List sx={{ p: 0 }}>
-                  {activities?.map((activity, index) => (
+                  {activities.map((activity, index) => (
                     <React.Fragment key={activity.id}>
                       <ListItem sx={{ px: 0 }}>
                         <ListItemIcon>
@@ -814,7 +689,7 @@ const Dashboard: React.FC = () => {
         <DialogTitle>System Alerts & Notifications</DialogTitle>
         <DialogContent>
           <List>
-            {alerts?.map((alert) => (
+            {alerts.map((alert) => (
               <ListItem key={alert.id} sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                 <Box sx={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
                   <Alert severity={alert.type} sx={{ flex: 1, mr: 1 }}>

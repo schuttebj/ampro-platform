@@ -34,6 +34,7 @@ import LocationManagement from './pages/admin/LocationManagement';
 import UserManagement from './pages/admin/UserManagement';
 import PrinterManagement from './pages/admin/PrinterManagement';
 import AuditLogs from './pages/admin/AuditLogs';
+import Settings from './pages/Settings';
 
 // New Workflow Pages
 import WorkflowMain from './pages/workflow/WorkflowMain';
@@ -137,8 +138,8 @@ const App: React.FC = () => {
                   <Route path="/transactions" element={<Transactions />} />
                   <Route path="/reports" element={<Reports />} />
                   
-                  {/* Placeholder pages - to be implemented */}
-                  <Route path="/settings" element={<div>Settings Page</div>} />
+                  {/* Settings and profile pages */}
+                  <Route path="/settings" element={<Settings />} />
                   <Route path="/profile" element={<div>Profile Page</div>} />
                 </Route>
               </Route>

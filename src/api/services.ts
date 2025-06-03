@@ -680,21 +680,29 @@ export const externalService = {
 // Dashboard Services
 export const dashboardService = {
   getStats: async (): Promise<DashboardStats> => {
-    // This might need to be implemented as separate calls to different endpoints
-    // or as a dedicated dashboard endpoint in the backend
-    const [citizens, licenses, applications, transactions] = await Promise.all([
-      citizenService.getAll({ limit: 1 }),
-      licenseService.getLicenses(),
-      applicationService.getPendingApplications(),
-      transactionService.getTransactions()
-    ]);
+    const response = await api.get('/dashboard/stats');
+    return response.data;
+  },
 
-    return {
-      citizens_registered: citizens.length || 0,
-      licenses_issued: licenses.total || 0,
-      pending_applications: applications.length || 0,
-      transactions_today: transactions.total || 0 // This would need filtering by date
-    };
+  getRecentActivities: async (limit: number = 10): Promise<{
+    activities: any[];
+    total: number;
+    last_updated: string;
+  }> => {
+    const response = await api.get('/dashboard/recent-activities', {
+      params: { limit }
+    });
+    return response.data;
+  },
+
+  getSystemAlerts: async (): Promise<{
+    alerts: any[];
+    total: number;
+    critical_count: number;
+    last_updated: string;
+  }> => {
+    const response = await api.get('/dashboard/system-alerts');
+    return response.data;
   }
 };
 

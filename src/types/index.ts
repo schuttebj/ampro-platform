@@ -603,10 +603,49 @@ export interface ApplicationFormData {
 }
 
 export interface DashboardStats {
-  citizens_registered: number;
-  licenses_issued: number;
-  pending_applications: number;
-  transactions_today: number;
+  citizens: {
+    total: number;
+    new_today: number;
+    active: number;
+  };
+  applications: {
+    total: number;
+    pending_review: number;
+    approved_today: number;
+    rejected_today: number;
+    pending_documents: number;
+    pending_payment: number;
+  };
+  licenses: {
+    total_active: number;
+    issued_today: number;
+    expiring_30_days: number;
+    suspended: number;
+    pending_collection: number;
+  };
+  print_jobs: {
+    queued: number;
+    printing: number;
+    completed_today: number;
+    failed: number;
+  };
+  shipping: {
+    pending: number;
+    in_transit: number;
+    delivered_today: number;
+    failed: number;
+  };
+  compliance: {
+    compliant_rate: number;
+    critical_issues: number;
+    pending_validation: number;
+  };
+  system_performance: {
+    avg_processing_time: number;
+    uptime_percentage: number;
+    queue_health: 'good' | 'warning' | 'critical';
+  };
+  last_updated: string;
 }
 
 export interface RecentActivity {
