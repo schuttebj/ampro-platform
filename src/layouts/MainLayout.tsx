@@ -81,7 +81,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ window }) => {
       { text: 'Locations', icon: <LocationIcon />, path: '/location-management' },
       { text: 'User Management', icon: <UserManagementIcon />, path: '/user-management' },
       { text: 'Printer Management', icon: <PrinterManagementIcon />, path: '/printer-management' },
-      { text: 'Hardware Management', icon: <HardwareManagementIcon />, path: '/hardware-management' },
+      { text: 'Hardware', icon: <HardwareManagementIcon />, path: '/hardware-management' },
       { text: 'Audit Logs', icon: <SecurityIcon />, path: '/audit-logs' }
     ] : []),
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },

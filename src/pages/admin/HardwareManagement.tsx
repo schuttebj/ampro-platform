@@ -312,7 +312,7 @@ const HardwareManagement: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1">
-          Hardware Management
+          Hardware
         </Typography>
         <Button
           variant="contained"
