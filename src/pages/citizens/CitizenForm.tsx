@@ -237,7 +237,41 @@ const CitizenForm: React.FC = () => {
       )}
 
       <Paper sx={{ p: 4 }}>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          {/* Test button to verify form data */}
+          <Box sx={{ mb: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+            <Typography variant="h6" color="info.contrastText" gutterBottom>
+              Debug Information
+            </Typography>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                console.log('=== DEBUG BUTTON CLICKED ===');
+                console.log('Form values:', watch());
+                console.log('Form errors:', errors);
+                console.log('Is form valid:', Object.keys(errors).length === 0);
+                console.log('isEdit:', isEdit, 'id:', id);
+                console.log('Loading:', loading, 'photoUploading:', photoUploading);
+              }}
+              sx={{ mr: 2, mb: 1 }}
+            >
+              Debug Form State
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={async (e) => {
+                e.preventDefault();
+                console.log('=== MANUAL SUBMIT TEST ===');
+                const formData = watch();
+                console.log('Manual submission with data:', formData);
+                await onSubmit(formData);
+              }}
+              sx={{ mb: 1 }}
+            >
+              Manual Submit Test
+            </Button>
+          </Box>
+          
           {/* Personal Information Section */}
           <Typography variant="h6" gutterBottom>
             Personal Information
