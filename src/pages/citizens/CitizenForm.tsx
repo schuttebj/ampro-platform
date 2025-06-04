@@ -94,9 +94,13 @@ const defaultValues: CitizenFormData = {
 };
 
 const CitizenForm: React.FC = () => {
+  console.log('=== CITIZEN FORM COMPONENT LOADING ===');
+  
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
+  
+  console.log('Component initialized:', { id, isEdit });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -113,6 +117,8 @@ const CitizenForm: React.FC = () => {
     resolver: yupResolver(schema),
     defaultValues
   });
+
+  console.log('Form initialized, handleSubmit type:', typeof handleSubmit);
 
   const watchedPhotoUrl = watch('photo_url');
 
@@ -228,6 +234,20 @@ const CitizenForm: React.FC = () => {
         <Typography variant="h4" component="h1">
           {isEdit ? 'Edit Citizen' : 'Add New Citizen'}
         </Typography>
+        
+        {/* Simple test button - completely independent */}
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={() => {
+            console.log('=== SIMPLE TEST BUTTON CLICKED ===');
+            console.log('This button works independently of the form');
+            console.log('Current time:', new Date().toISOString());
+            alert('Test button clicked! Check console for logs.');
+          }}
+        >
+          TEST BUTTON
+        </Button>
       </Box>
 
       {error && (
