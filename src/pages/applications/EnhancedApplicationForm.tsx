@@ -24,10 +24,6 @@ import {
   Checkbox,
   RadioGroup,
   Radio,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Card,
   CardContent,
   Chip
@@ -188,13 +184,26 @@ const EnhancedApplicationForm: React.FC = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [citizenDialogOpen, setCitizenDialogOpen] = useState(false);
+  const [showCitizenSearch, setShowCitizenSearch] = useState(false);
+  const [showNewCitizenForm, setShowNewCitizenForm] = useState(false);
   const [citizenSearchTerm, setCitizenSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CitizenData[]>([]);
   const [selectedCitizen, setSelectedCitizen] = useState<CitizenData | null>(null);
   const [applicationData, setApplicationData] = useState<any>(null);
   const [feeInfo, setFeeInfo] = useState<any>(null);
   const [requiredSections, setRequiredSections] = useState<string[]>(['A', 'B', 'C', 'D']);
+  
+  // New citizen form state
+  const [newCitizenData, setNewCitizenData] = useState({
+    id_number: '',
+    first_name: '',
+    last_name: '',
+    date_of_birth: '',
+    gender: '',
+    contact_number: '',
+    email: '',
+    address: ''
+  });
 
   const isEditMode = !!id;
 
@@ -325,9 +334,42 @@ const EnhancedApplicationForm: React.FC = () => {
   const handleCitizenSelect = (citizen: CitizenData) => {
     setSelectedCitizen(citizen);
     setValue('citizen_id', citizen.id || 0);
-    setCitizenDialogOpen(false);
+    setShowCitizenSearch(false);
     setSearchResults([]);
     setCitizenSearchTerm('');
+  };
+
+  const createNewCitizen = async () => {
+    try {
+      setLoading(true);
+      const response = await api.post('/citizens/', newCitizenData);
+      const newCitizen = response.data;
+      
+      // Automatically select the newly created citizen
+      setSelectedCitizen(newCitizen);
+      setValue('citizen_id', newCitizen.id || 0);
+      
+      // Reset forms
+      setShowNewCitizenForm(false);
+      setShowCitizenSearch(false);
+      setCitizenSearchTerm('');
+      setNewCitizenData({
+        id_number: '',
+        first_name: '',
+        last_name: '',
+        date_of_birth: '',
+        gender: '',
+        contact_number: '',
+        email: '',
+        address: ''
+      });
+      
+      setSuccess('New citizen created and selected successfully!');
+    } catch (error: any) {
+      setError('Failed to create citizen: ' + (error.response?.data?.detail || error.message));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const calculateFee = async () => {
@@ -601,48 +643,222 @@ const EnhancedApplicationForm: React.FC = () => {
               </Typography>
               
               <Box mb={3}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setCitizenDialogOpen(true)}
-                  fullWidth
-                  sx={{ mb: 2 }}
-                >
-                  {selectedCitizen ? 
-                    `Selected: ${selectedCitizen.first_name} ${selectedCitizen.last_name} (${selectedCitizen.id_number})` :
-                    'Search and Select Citizen'
-                  }
-                </Button>
-                
-                {selectedCitizen && (
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="subtitle1" gutterBottom>
-                        Citizen Information
-                      </Typography>
-                      <Grid container spacing={2}>
-                        <Grid item xs={6}>
-                          <Typography variant="body2">
-                            <strong>Name:</strong> {selectedCitizen.first_name} {selectedCitizen.last_name}
-                          </Typography>
+                {!selectedCitizen ? (
+                  <Box>
+                    <TextField
+                      fullWidth
+                      label="Search for Citizen by ID Number or Name"
+                      value={citizenSearchTerm}
+                      onChange={(e) => {
+                        setCitizenSearchTerm(e.target.value);
+                        searchCitizens(e.target.value);
+                        setShowCitizenSearch(true);
+                      }}
+                      placeholder="Enter ID number or name to search..."
+                      sx={{ mb: 2 }}
+                    />
+                    
+                    {showCitizenSearch && citizenSearchTerm && (
+                      <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2, mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Search Results:
+                        </Typography>
+                        
+                        {searchResults.length > 0 ? (
+                          <Box>
+                            {searchResults.map((citizen) => (
+                              <Card 
+                                key={citizen.id} 
+                                sx={{ mb: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }} 
+                                onClick={() => handleCitizenSelect(citizen)}
+                              >
+                                <CardContent sx={{ py: 1.5 }}>
+                                  <Typography variant="h6">
+                                    {citizen.first_name} {citizen.last_name}
+                                  </Typography>
+                                  <Typography color="textSecondary">
+                                    ID: {citizen.id_number} | DOB: {citizen.date_of_birth}
+                                  </Typography>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </Box>
+                        ) : (
+                          <Alert severity="info" sx={{ mt: 1 }}>
+                            No citizen found matching "{citizenSearchTerm}". 
+                            <Button 
+                              onClick={() => setShowNewCitizenForm(true)} 
+                              sx={{ ml: 1 }}
+                              variant="outlined"
+                              size="small"
+                            >
+                              Create New Citizen
+                            </Button>
+                          </Alert>
+                        )}
+                      </Box>
+                    )}
+
+                    {/* Inline New Citizen Form */}
+                    {showNewCitizenForm && (
+                      <Box sx={{ border: '2px solid #1976d2', borderRadius: 1, p: 3, mb: 2, bgcolor: 'background.paper' }}>
+                        <Typography variant="h6" gutterBottom color="primary">
+                          Create New Citizen
+                        </Typography>
+                        
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="ID Number *"
+                              value={newCitizenData.id_number}
+                              onChange={(e) => setNewCitizenData({...newCitizenData, id_number: e.target.value})}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <FormControl fullWidth>
+                              <InputLabel>Gender *</InputLabel>
+                              <Select
+                                value={newCitizenData.gender}
+                                onChange={(e) => setNewCitizenData({...newCitizenData, gender: e.target.value})}
+                                label="Gender *"
+                              >
+                                <MenuItem value="male">Male</MenuItem>
+                                <MenuItem value="female">Female</MenuItem>
+                                <MenuItem value="other">Other</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="First Name *"
+                              value={newCitizenData.first_name}
+                              onChange={(e) => setNewCitizenData({...newCitizenData, first_name: e.target.value})}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Last Name *"
+                              value={newCitizenData.last_name}
+                              onChange={(e) => setNewCitizenData({...newCitizenData, last_name: e.target.value})}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Date of Birth *"
+                              type="date"
+                              value={newCitizenData.date_of_birth}
+                              onChange={(e) => setNewCitizenData({...newCitizenData, date_of_birth: e.target.value})}
+                              InputLabelProps={{ shrink: true }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Contact Number"
+                              value={newCitizenData.contact_number}
+                              onChange={(e) => setNewCitizenData({...newCitizenData, contact_number: e.target.value})}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Email"
+                              type="email"
+                              value={newCitizenData.email}
+                              onChange={(e) => setNewCitizenData({...newCitizenData, email: e.target.value})}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Address"
+                              value={newCitizenData.address}
+                              onChange={(e) => setNewCitizenData({...newCitizenData, address: e.target.value})}
+                            />
+                          </Grid>
                         </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2">
-                            <strong>ID Number:</strong> {selectedCitizen.id_number}
+
+                        <Box mt={3} display="flex" gap={2}>
+                          <Button
+                            variant="contained"
+                            onClick={createNewCitizen}
+                            disabled={!newCitizenData.id_number || !newCitizenData.first_name || !newCitizenData.last_name || !newCitizenData.date_of_birth || !newCitizenData.gender}
+                          >
+                            Create Citizen
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            onClick={() => {
+                              setShowNewCitizenForm(false);
+                              setNewCitizenData({
+                                id_number: '',
+                                first_name: '',
+                                last_name: '',
+                                date_of_birth: '',
+                                gender: '',
+                                contact_number: '',
+                                email: '',
+                                address: ''
+                              });
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  <Box>
+                    <Card variant="outlined" sx={{ mb: 2 }}>
+                      <CardContent>
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Typography variant="subtitle1" gutterBottom>
+                            Selected Citizen
                           </Typography>
+                          <Button 
+                            variant="text" 
+                            onClick={() => {
+                              setSelectedCitizen(null);
+                              setValue('citizen_id', 0);
+                              setCitizenSearchTerm('');
+                              setSearchResults([]);
+                              setShowCitizenSearch(false);
+                            }}
+                            size="small"
+                          >
+                            Change Citizen
+                          </Button>
+                        </Box>
+                        <Grid container spacing={2}>
+                          <Grid item xs={6}>
+                            <Typography variant="body2">
+                              <strong>Name:</strong> {selectedCitizen.first_name} {selectedCitizen.last_name}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2">
+                              <strong>ID Number:</strong> {selectedCitizen.id_number}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2">
+                              <strong>Date of Birth:</strong> {selectedCitizen.date_of_birth}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2">
+                              <strong>Gender:</strong> {selectedCitizen.gender}
+                            </Typography>
+                          </Grid>
                         </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2">
-                            <strong>Date of Birth:</strong> {selectedCitizen.date_of_birth}
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2">
-                            <strong>Gender:</strong> {selectedCitizen.gender}
-                          </Typography>
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </Box>
                 )}
               </Box>
 
@@ -763,48 +979,6 @@ const EnhancedApplicationForm: React.FC = () => {
           </Button>
         </Box>
       </Paper>
-
-      {/* Citizen Search Dialog */}
-      <Dialog open={citizenDialogOpen} onClose={() => setCitizenDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Search Citizen</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="Search by ID Number or Name"
-            value={citizenSearchTerm}
-            onChange={(e) => {
-              setCitizenSearchTerm(e.target.value);
-              searchCitizens(e.target.value);
-            }}
-            sx={{ mb: 2 }}
-          />
-          
-          {searchResults.map((citizen) => (
-            <Card key={citizen.id} sx={{ mb: 1, cursor: 'pointer' }} onClick={() => handleCitizenSelect(citizen)}>
-              <CardContent>
-                <Typography variant="h6">
-                  {citizen.first_name} {citizen.last_name}
-                </Typography>
-                <Typography color="textSecondary">
-                  ID: {citizen.id_number} | DOB: {citizen.date_of_birth}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {citizenSearchTerm && searchResults.length === 0 && (
-            <Alert severity="info">
-              No citizen found. Would you like to create a new citizen record?
-              <Button onClick={() => navigate('/citizens/new')} sx={{ ml: 1 }}>
-                Create New Citizen
-              </Button>
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCitizenDialogOpen(false)}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
