@@ -97,13 +97,9 @@ const defaultValues: CitizenFormData = {
 };
 
 const CitizenForm: React.FC = () => {
-  console.log('=== CITIZEN FORM COMPONENT LOADING ===');
-  
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
-  
-  console.log('Component initialized:', { id, isEdit });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -120,8 +116,6 @@ const CitizenForm: React.FC = () => {
     resolver: yupResolver(schema),
     defaultValues
   });
-
-  console.log('Form initialized, handleSubmit type:', typeof handleSubmit);
 
   const watchedPhotoUrl = watch('photo_url');
 
@@ -179,37 +173,19 @@ const CitizenForm: React.FC = () => {
   };
 
   const onSubmit = async (data: CitizenFormData) => {
-    console.log('=== FORM SUBMISSION STARTED ===');
-    console.log('Form submission started', { isEdit, id, data });
-    console.log('Form errors:', errors);
-    console.log('Form is valid:', Object.keys(errors).length === 0);
-    
     try {
       setLoading(true);
       setError('');
 
       if (isEdit && id) {
-        // Update existing citizen
-        console.log('=== UPDATING CITIZEN ===');
-        console.log('Updating citizen with ID:', id);
-        console.log('Update data:', data);
-        const response = await api.put(`/citizens/${id}`, data);
-        console.log('Update response:', response);
+        await api.put(`/citizens/${id}`, data);
       } else {
-        // Create new citizen
-        console.log('=== CREATING CITIZEN ===');
-        console.log('Creating new citizen');
-        console.log('Create data:', data);
-        const response = await api.post('/citizens/', data);
-        console.log('Create response:', response);
+        await api.post('/citizens/', data);
       }
 
-      console.log('=== SUCCESS - NAVIGATING ===');
       navigate('/citizens');
     } catch (err: any) {
-      console.error('=== ERROR SAVING CITIZEN ===');
       console.error('Error saving citizen:', err);
-      console.error('Error response:', err.response);
       setError(err.response?.data?.detail || 'Failed to save citizen');
     } finally {
       setLoading(false);
@@ -237,20 +213,6 @@ const CitizenForm: React.FC = () => {
         <Typography variant="h4" component="h1">
           {isEdit ? 'Edit Citizen' : 'Add New Citizen'}
         </Typography>
-        
-        {/* Simple test button - completely independent */}
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={() => {
-            console.log('=== SIMPLE TEST BUTTON CLICKED ===');
-            console.log('This button works independently of the form');
-            console.log('Current time:', new Date().toISOString());
-            alert('Test button clicked! Check console for logs.');
-          }}
-        >
-          TEST BUTTON
-        </Button>
       </Box>
 
       {error && (
@@ -260,18 +222,7 @@ const CitizenForm: React.FC = () => {
       )}
 
       <Paper sx={{ p: 4 }}>
-        <form onSubmit={handleSubmit((data) => {
-          console.log('=== FORM ONSUBMIT TRIGGERED ===');
-          console.log('handleSubmit wrapper called with data:', data);
-          return onSubmit(data);
-        })} noValidate>
-          {/* Debug info - simplified */}
-          <Box sx={{ mb: 1, p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
-            <Typography variant="body2" color="success.contrastText">
-              ✅ Form validation fixed - submit button should work now
-            </Typography>
-          </Box>
-          
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
           {/* Personal Information Section */}
           <Typography variant="h6" gutterBottom>
             Personal Information
