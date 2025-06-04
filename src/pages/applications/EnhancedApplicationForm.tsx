@@ -140,7 +140,7 @@ const licenseCategories = [
 ];
 
 // Validation schema
-const schema = yup.object({
+const schema = yup.object().shape({
   citizen_id: yup.number().required('Citizen is required'),
   applied_category: yup.string().required('License category is required'),
   application_type: yup.string().required('Application type is required'),
@@ -152,18 +152,14 @@ const schema = yup.object({
   
   // Section B
   previous_license_refusal: yup.boolean().default(false),
-  refusal_details: yup.string().when('previous_license_refusal', {
-    is: true,
-    then: (schema) => schema.required('Refusal details are required'),
-    otherwise: (schema) => schema.notRequired()
-  }),
+  refusal_details: yup.string().optional(),
   
   // Section C
-  card_notice_status: yup.string().notRequired(),
-  police_report_station: yup.string().notRequired(),
-  police_report_cas_number: yup.string().notRequired(),
-  office_of_issue: yup.string().notRequired(),
-  card_status_change_date: yup.string().notRequired(),
+  card_notice_status: yup.string().optional(),
+  police_report_station: yup.string().optional(),
+  police_report_cas_number: yup.string().optional(),
+  office_of_issue: yup.string().optional(),
+  card_status_change_date: yup.string().optional(),
   
   // Section D - Legal declarations
   not_disqualified: yup.boolean().default(false),
@@ -183,8 +179,8 @@ const schema = yup.object({
   medically_fit: yup.boolean().default(false),
   
   // Declaration completion
-  information_true_correct: yup.boolean().oneOf([true], 'You must confirm the information is true and correct'),
-  applicant_signature_date: yup.string().notRequired()
+  information_true_correct: yup.boolean().default(false),
+  applicant_signature_date: yup.string().optional()
 });
 
 const EnhancedApplicationForm: React.FC = () => {
