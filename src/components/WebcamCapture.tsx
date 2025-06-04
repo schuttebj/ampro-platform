@@ -104,63 +104,28 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         console.warn('Browser webcam detection failed:', browserError);
       }
       
-      // Second fallback: Try server-side detection (for configured hardware)
+      // Fallback: Get configured webcam hardware devices from database
       try {
-        const detectionResponse = await hardwareApi.webcam.detect();
+        const allHardware = await hardwareApi.getAll({
+          hardware_type: 'WEBCAM',
+          status: 'ACTIVE'
+        });
         
-        if (detectionResponse.success && detectionResponse.webcams && detectionResponse.webcams.length > 0) {
-          // Convert server-detected webcams to our Hardware format using numeric IDs
-          const detectedWebcams: Hardware[] = detectionResponse.webcams.map((webcam: any, index: number) => ({
-            id: 8000 + index, // Use different range for server-detected
-            name: webcam.name || `Server Webcam ${index + 1}`,
-            code: webcam.device_id || `SERVER_${index}`,
-            hardware_type: 'WEBCAM' as const,
-            model: webcam.capabilities?.max_resolution || 'Unknown',
-            manufacturer: webcam.manufacturer || 'Unknown',
-            serial_number: '',
-            device_id: webcam.device_id,
-            status: 'ACTIVE' as const,
-            location_id: undefined,
-            usage_count: 0,
-            error_count: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            is_active: true,
-            capabilities: webcam.capabilities
-          }));
-          
-          setWebcams(detectedWebcams);
-          
-          // Auto-select first detected webcam
-          if (detectedWebcams.length > 0) {
-            setSelectedWebcam(detectedWebcams[0].id);
-          }
-          
-          console.info(`Detected ${detectedWebcams.length} server webcam(s)`);
-          return; // Successfully loaded server-detected webcams
+        setWebcams(allHardware);
+        
+        // Auto-select first webcam if available
+        if (allHardware.length > 0) {
+          setSelectedWebcam(allHardware[0].id);
         }
-      } catch (detectionError) {
-        console.warn('Server webcam detection failed, falling back to database webcams:', detectionError);
-      }
-      
-      // Third fallback: Get configured webcam hardware devices from database
-      const allHardware = await hardwareApi.getAll({
-        hardware_type: 'WEBCAM',
-        status: 'ACTIVE'
-      });
-      
-      setWebcams(allHardware);
-      
-      // Auto-select first webcam if available
-      if (allHardware.length > 0) {
-        setSelectedWebcam(allHardware[0].id);
-      }
-      
-      // Show info message about using configured webcams vs detected ones
-      if (allHardware.length > 0) {
-        console.info(`Using ${allHardware.length} configured webcam device(s) from database. For local webcam detection, please allow camera permissions in your browser.`);
-      } else {
-        console.warn('No webcams detected. Please ensure webcams are connected and camera permissions are granted.');
+        
+        // Show info message about using configured webcams vs detected ones
+        if (allHardware.length > 0) {
+          console.info(`Using ${allHardware.length} configured webcam device(s) from database. For local webcam detection, please allow camera permissions in your browser.`);
+        } else {
+          console.warn('No webcams detected. Please ensure webcams are connected and camera permissions are granted.');
+        }
+      } catch (dbError) {
+        console.warn('Failed to load configured webcams from database:', dbError);
       }
       
     } catch (err: any) {
@@ -193,12 +158,10 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       if (selectedWebcam >= 9000) {
         // This is a browser-detected webcam - use browser APIs
         await handleBrowserWebcamCapture(selectedWebcamData);
-      } else if (selectedWebcam >= 8000) {
-        // This is a server-detected webcam - use server APIs
-        await handleServerWebcamCapture(selectedWebcamData);
       } else {
-        // This is a configured hardware webcam from database
-        await handleDatabaseWebcamCapture(selectedWebcam);
+        // Database webcams: Since server has no camera access, inform user to use browser detection
+        setError('Database-configured webcams are not supported. Please ensure browser webcam permissions are granted for automatic detection.');
+        return;
       }
 
     } catch (err: any) {
@@ -280,58 +243,6 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
     } catch (error: any) {
       console.error('Browser webcam capture error:', error);
       setError(error.message || 'Failed to capture photo using browser webcam');
-    }
-  };
-
-  const handleServerWebcamCapture = async (webcamData: Hardware) => {
-    // Server-side capture (existing logic)
-    const { hardwareApi } = await import('../api/api');
-
-    const captureParams = {
-      hardware_id: webcamData.device_id || '0',
-      citizen_id: citizenId,
-      quality: 'high' as const,
-      format: 'jpeg' as const
-    };
-
-    const response = await hardwareApi.webcam.capture(captureParams);
-
-    if (response.success && response.photo_url) {
-      setSuccess('Photo captured successfully!');
-      onPhotoCapture(response.photo_url);
-      
-      setTimeout(() => {
-        setOpen(false);
-        setSuccess('');
-      }, 1500);
-    } else {
-      setError(response.error_message || 'Photo capture failed');
-    }
-  };
-
-  const handleDatabaseWebcamCapture = async (hardwareId: number) => {
-    // Database hardware capture (existing logic)
-    const { hardwareApi } = await import('../api/api');
-
-    const captureParams = {
-      hardware_id: hardwareId,
-      citizen_id: citizenId,
-      quality: 'high' as const,
-      format: 'jpeg' as const
-    };
-
-    const response = await hardwareApi.webcam.capture(captureParams);
-
-    if (response.success && response.photo_url) {
-      setSuccess('Photo captured successfully!');
-      onPhotoCapture(response.photo_url);
-      
-      setTimeout(() => {
-        setOpen(false);
-        setSuccess('');
-      }, 1500);
-    } else {
-      setError(response.error_message || 'Photo capture failed');
     }
   };
 

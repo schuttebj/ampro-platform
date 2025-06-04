@@ -127,86 +127,60 @@ export default api;
 
 // Hardware API Functions
 export const hardwareApi = {
-  // Get all hardware devices with optional filtering
-  getAll: async (params?: HardwareSearchParams): Promise<Hardware[]> => {
-    const response = await api.get('/hardware/', { params });
+  getAll: async (params?: {
+    skip?: number;
+    limit?: number;
+    location_id?: number;
+    hardware_type?: string;
+    status?: string;
+    search?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.skip) queryParams.append('skip', params.skip.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.location_id) queryParams.append('location_id', params.location_id.toString());
+    if (params?.hardware_type) queryParams.append('hardware_type', params.hardware_type);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const response = await api.get(`/hardware/?${queryParams.toString()}`);
     return response.data;
   },
 
-  // Get hardware device by ID
-  getById: async (id: number): Promise<Hardware> => {
-    const response = await api.get(`/hardware/${id}`);
-    return response.data;
-  },
-
-  // Create new hardware device
-  create: async (data: HardwareCreate): Promise<Hardware> => {
+  create: async (data: any) => {
     const response = await api.post('/hardware/', data);
     return response.data;
   },
 
-  // Update hardware device
-  update: async (id: number, data: HardwareUpdate): Promise<Hardware> => {
+  getById: async (id: number) => {
+    const response = await api.get(`/hardware/${id}`);
+    return response.data;
+  },
+
+  update: async (id: number, data: any) => {
     const response = await api.put(`/hardware/${id}`, data);
     return response.data;
   },
 
-  // Delete hardware device
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/hardware/${id}`);
-  },
-
-  // Update hardware status
-  updateStatus: async (id: number, data: HardwareStatusUpdate): Promise<Hardware> => {
-    const response = await api.put(`/hardware/${id}/status`, data);
+  updateStatus: async (id: number, data: { status: string; notes?: string }) => {
+    const response = await api.post(`/hardware/${id}/status`, data);
     return response.data;
   },
 
-  // Get hardware statistics
-  getStatistics: async (): Promise<any> => {
+  delete: async (id: number) => {
+    const response = await api.delete(`/hardware/${id}`);
+    return response.data;
+  },
+
+  getStatistics: async () => {
     const response = await api.get('/hardware/statistics');
     return response.data;
   },
 
-  // Test hardware device
-  test: async (id: number): Promise<any> => {
-    const response = await api.post(`/hardware/${id}/test`);
-    return response.data;
-  },
-
-  // Get webcam-specific functions
   webcam: {
-    // Detect available webcams
-    detect: async (): Promise<{
-      success: boolean;
-      webcams: any[];
-      count: number;
-      detected_at: string;
-    }> => {
-      const response = await api.get('/hardware/webcams/detect');
-      return response.data;
-    },
-
-    // Capture photo using webcam
-    capture: async (params: {
-      hardware_id: number | string;
-      citizen_id: number;
-      quality?: string;
-      format?: string;
-    }): Promise<WebcamCaptureResponse> => {
-      const response = await api.post('/hardware/webcam/capture', params);
-      return response.data;
-    },
-
-    // Get webcam status
-    getStatus: async (hardwareId: number): Promise<any> => {
-      const response = await api.get(`/hardware/webcam/${hardwareId}/status`);
-      return response.data;
-    },
-
-    // Get webcam settings
-    getSettings: async (hardwareId: number): Promise<any> => {
-      const response = await api.get(`/hardware/webcam/${hardwareId}/settings`);
+    getAvailable: async (locationId?: number) => {
+      const params = locationId ? `?location_id=${locationId}` : '';
+      const response = await api.get(`/hardware/webcams/available${params}`);
       return response.data;
     }
   }
