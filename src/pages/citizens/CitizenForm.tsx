@@ -156,11 +156,7 @@ const CitizenForm: React.FC = () => {
           params: { photo_url: photoUrl }
         });
         setValue('photo_url', photoUrl);
-        
-        // Show success message and navigate after a brief delay
-        setTimeout(() => {
-          navigate('/citizens');
-        }, 1500);
+        // No automatic navigation - stay on the edit screen
       } catch (err: any) {
         console.error('Error updating photo:', err);
         setError(err.response?.data?.detail || 'Failed to update photo');
@@ -174,18 +170,27 @@ const CitizenForm: React.FC = () => {
   };
 
   const onSubmit = async (data: CitizenFormData) => {
+    console.log('Form submission started', { isEdit, id, data });
+    console.log('Form errors:', errors);
+    console.log('Form is valid:', Object.keys(errors).length === 0);
+    
     try {
       setLoading(true);
       setError('');
 
       if (isEdit && id) {
         // Update existing citizen
-        await api.put(`/citizens/${id}`, data);
+        console.log('Updating citizen with ID:', id);
+        const response = await api.put(`/citizens/${id}`, data);
+        console.log('Update response:', response);
       } else {
         // Create new citizen
-        await api.post('/citizens/', data);
+        console.log('Creating new citizen');
+        const response = await api.post('/citizens/', data);
+        console.log('Create response:', response);
       }
 
+      console.log('Success - navigating to citizens list');
       navigate('/citizens');
     } catch (err: any) {
       console.error('Error saving citizen:', err);
