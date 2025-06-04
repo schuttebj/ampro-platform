@@ -450,7 +450,7 @@ const CitizenForm: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <ImageUpload
-                    value={field.value}
+                    value={field.value || undefined}
                     onChange={handlePhotoChange}
                     label="Citizen Photo"
                     maxSize={2} // 2MB limit
@@ -511,6 +511,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="Phone Number"
                     fullWidth
                     disabled={loading}
@@ -525,6 +526,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="Email"
                     type="email"
                     fullWidth
@@ -550,6 +552,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="Address Line 1"
                     fullWidth
                     disabled={loading}
@@ -564,6 +567,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="Address Line 2"
                     fullWidth
                     disabled={loading}
@@ -578,6 +582,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="City"
                     fullWidth
                     disabled={loading}
@@ -592,6 +597,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="State/Province"
                     fullWidth
                     disabled={loading}
@@ -606,6 +612,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="Postal Code"
                     fullWidth
                     disabled={loading}
@@ -620,6 +627,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="Country"
                     fullWidth
                     disabled={loading}
