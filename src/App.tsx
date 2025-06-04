@@ -119,7 +119,7 @@ const App: React.FC = () => {
                   <Route path="/applications/enhanced/new" element={<EnhancedApplicationForm />} />
                   <Route path="/applications/edit/:id" element={<EnhancedApplicationForm />} />
                   <Route path="/applications/:applicationId/payment" element={<PaymentInterface />} />
-                  <Route path="/applications/:id/view" element={<ApplicationView />} />
+                  <Route path="/applications/:id/view" element={<ApplicationDetails />} />
                   
                   {/* License routes */}
                   <Route path="/licenses" element={<LicenseList />} />

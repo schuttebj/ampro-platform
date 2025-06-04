@@ -188,7 +188,7 @@ const FeeManagement: React.FC = () => {
   };
 
   const handleDelete = async (feeId: number) => {
-    if (!confirm('Are you sure you want to deactivate this fee?')) return;
+    if (!window.confirm('Are you sure you want to deactivate this fee?')) return;
 
     try {
       setLoading(true);
