@@ -386,10 +386,10 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
             position: 'absolute',
             top: 0,
             bottom: 0,
-            left: '50%',
+            left: 0,
             width: 1,
             backgroundColor: '#00ff00',
-            opacity: 0.6
+            opacity: 0.2
           }}
         />
         {/* Dimensions text */}

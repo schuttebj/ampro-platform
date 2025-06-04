@@ -156,6 +156,11 @@ const CitizenForm: React.FC = () => {
           params: { photo_url: photoUrl }
         });
         setValue('photo_url', photoUrl);
+        
+        // Show success message and navigate after a brief delay
+        setTimeout(() => {
+          navigate('/citizens');
+        }, 1500);
       } catch (err: any) {
         console.error('Error updating photo:', err);
         setError(err.response?.data?.detail || 'Failed to update photo');
