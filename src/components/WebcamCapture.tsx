@@ -186,8 +186,18 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
-        setPreviewActive(true);
+        
+        // Wait for video to actually start playing
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              setPreviewActive(true);
+            }).catch((playError) => {
+              console.error('Error playing video:', playError);
+              setError('Failed to start video preview');
+            });
+          }
+        };
       }
     } catch (error: any) {
       console.error('Error starting preview:', error);
@@ -461,6 +471,8 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                                     objectFit: 'cover'
                                   }}
                                   muted
+                                  autoPlay
+                                  playsInline
                                 />
                                 {renderPreviewOverlay()}
                               </>
