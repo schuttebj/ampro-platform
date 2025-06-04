@@ -47,6 +47,11 @@ import WorkflowAnalytics from './pages/workflow/WorkflowAnalytics';
 import ManualPrintJobCreator from './pages/workflow/ManualPrintJobCreator';
 import ISOCompliance from './pages/workflow/ISOCompliance';
 
+// New Application Pages
+import EnhancedApplicationForm from './pages/applications/EnhancedApplicationForm';
+import PaymentInterface from './pages/applications/PaymentInterface';
+import FeeManagement from './pages/admin/FeeManagement';
+
 // Create the query client
 const queryClient = new QueryClient();
 
@@ -111,6 +116,10 @@ const App: React.FC = () => {
                   <Route path="/applications/:id" element={<ApplicationDetails />} />
                   <Route path="/applications/:id/edit" element={<ApplicationForm />} />
                   <Route path="/applications/new" element={<ApplicationForm />} />
+                  <Route path="/applications/enhanced/new" element={<EnhancedApplicationForm />} />
+                  <Route path="/applications/edit/:id" element={<EnhancedApplicationForm />} />
+                  <Route path="/applications/:applicationId/payment" element={<PaymentInterface />} />
+                  <Route path="/applications/:id/view" element={<ApplicationView />} />
                   
                   {/* License routes */}
                   <Route path="/licenses" element={<LicenseList />} />
@@ -155,7 +164,7 @@ const App: React.FC = () => {
               {/* Admin-only routes */}
               <Route element={<ProtectedRoute requiredRole="admin" />}>
                 <Route element={<MainLayout />}>
-                  <Route path="/admin" element={<div>Admin Panel</div>} />
+                  <Route path="/admin" element={<FeeManagement />} />
                   <Route path="/location-management" element={<LocationManagement />} />
                   <Route path="/user-management" element={<UserManagement />} />
                   <Route path="/printer-management" element={<PrinterManagement />} />
