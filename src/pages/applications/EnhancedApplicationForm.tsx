@@ -322,13 +322,37 @@ const EnhancedApplicationForm: React.FC = () => {
     if (!searchTerm || searchTerm.length < 2) return;
 
     try {
+      setLoading(true);
       const response = await api.get('/citizens/search', {
         params: { q: searchTerm, limit: 10 }
       });
       setSearchResults(response.data);
+      
+      if (response.data.length === 0) {
+        setShowNewCitizenForm(true);
+      }
     } catch (error: any) {
+      console.error('Search error:', error);
       setError('Failed to search citizens');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Manual search function for search button
+  const handleManualSearch = () => {
+    if (citizenSearchTerm.trim()) {
+      searchCitizens(citizenSearchTerm.trim());
+      setShowCitizenSearch(true);
+    }
+  };
+
+  // Clear search function
+  const clearSearch = () => {
+    setCitizenSearchTerm('');
+    setSearchResults([]);
+    setShowCitizenSearch(false);
+    setShowNewCitizenForm(false);
   };
 
   const handleCitizenSelect = (citizen: CitizenData) => {
@@ -645,23 +669,45 @@ const EnhancedApplicationForm: React.FC = () => {
               <Box mb={3}>
                 {!selectedCitizen ? (
                   <Box>
-                    <TextField
-                      fullWidth
-                      label="Search for Citizen by ID Number or Name"
-                      value={citizenSearchTerm}
-                      onChange={(e) => {
-                        setCitizenSearchTerm(e.target.value);
-                        searchCitizens(e.target.value);
-                        setShowCitizenSearch(true);
-                      }}
-                      placeholder="Enter ID number or name to search..."
-                      sx={{ mb: 2 }}
-                    />
+                    <Box display="flex" gap={1} alignItems="flex-end" mb={2}>
+                      <TextField
+                        fullWidth
+                        label="Search for Citizen by ID Number or Name"
+                        value={citizenSearchTerm}
+                        onChange={(e) => {
+                          setCitizenSearchTerm(e.target.value);
+                          // Don't trigger search on change anymore
+                        }}
+                        placeholder="Enter ID number or name to search..."
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleManualSearch();
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={handleManualSearch}
+                        disabled={!citizenSearchTerm.trim() || loading}
+                        sx={{ minWidth: '100px', height: '56px' }}
+                      >
+                        {loading ? <CircularProgress size={20} /> : 'Search'}
+                      </Button>
+                      {(showCitizenSearch || citizenSearchTerm) && (
+                        <Button
+                          variant="outlined"
+                          onClick={clearSearch}
+                          sx={{ minWidth: '80px', height: '56px' }}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </Box>
                     
                     {showCitizenSearch && citizenSearchTerm && (
                       <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2, mb: 2 }}>
                         <Typography variant="subtitle2" gutterBottom>
-                          Search Results:
+                          Search Results for "{citizenSearchTerm}":
                         </Typography>
                         
                         {searchResults.length > 0 ? (
