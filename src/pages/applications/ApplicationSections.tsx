@@ -18,17 +18,27 @@ import {
 } from '@mui/material';
 
 interface ApplicationFormData {
+  citizen_id: number;
   applied_category: string;
+  application_type: string;
+  transaction_type: string;
+  // Section A
+  photograph_attached: boolean;
+  photograph_count: number;
+  // Section B
   previous_license_refusal: boolean;
   refusal_details?: string;
+  // Section C
   card_notice_status?: string;
   police_report_station?: string;
   police_report_cas_number?: string;
   office_of_issue?: string;
   card_status_change_date?: string;
+  // Section D - Legal declarations
   not_disqualified: boolean;
   not_suspended: boolean;
   not_cancelled: boolean;
+  // Medical declarations
   no_uncontrolled_epilepsy: boolean;
   no_sudden_fainting: boolean;
   no_mental_illness: boolean;
@@ -39,6 +49,7 @@ interface ApplicationFormData {
   no_narcotic_addiction: boolean;
   no_alcohol_addiction: boolean;
   medically_fit: boolean;
+  // Declaration completion
   information_true_correct: boolean;
   applicant_signature_date?: string;
 }
