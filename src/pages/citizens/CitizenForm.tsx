@@ -31,21 +31,21 @@ interface CitizenFormData {
   id_number: string;
   first_name: string;
   last_name: string;
-  middle_name?: string;
+  middle_name?: string | null;
   date_of_birth: string;
   gender: string;
-  marital_status?: string;
-  phone_number?: string;
-  email?: string;
-  address_line1?: string;
-  address_line2?: string;
-  city?: string;
-  state_province?: string;
-  postal_code?: string;
-  country?: string;
-  birth_place?: string;
-  nationality?: string;
-  photo_url?: string;
+  marital_status?: string | null;
+  phone_number?: string | null;
+  email?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  birth_place?: string | null;
+  nationality?: string | null;
+  photo_url?: string | null;
   is_active: boolean;
 }
 
@@ -78,21 +78,21 @@ const defaultValues: CitizenFormData = {
   id_number: '',
   first_name: '',
   last_name: '',
-  middle_name: '',
+  middle_name: null,
   date_of_birth: '',
   gender: '',
-  marital_status: '',
-  phone_number: '',
-  email: '',
-  address_line1: '',
-  address_line2: '',
-  city: '',
-  state_province: '',
-  postal_code: '',
+  marital_status: null,
+  phone_number: null,
+  email: null,
+  address_line1: null,
+  address_line2: null,
+  city: null,
+  state_province: null,
+  postal_code: null,
   country: 'South Africa',
-  birth_place: '',
-  nationality: '',
-  photo_url: '',
+  birth_place: null,
+  nationality: null,
+  photo_url: null,
   is_active: true
 };
 
@@ -336,6 +336,7 @@ const CitizenForm: React.FC = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    value={field.value || ''}
                     label="Middle Name"
                     fullWidth
                     disabled={loading}
