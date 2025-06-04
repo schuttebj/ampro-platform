@@ -115,14 +115,14 @@ interface ApplicationFormData {
 
 // Transaction types and their required sections
 const transactionTypeConfig = {
-  'driving_licence': { sections: ['A', 'B', 'D'], label: 'Driving licence' },
-  'govt_dept_licence': { sections: ['A', 'B', 'D'], label: 'Government Department licence' },
-  'foreign_replacement': { sections: ['A', 'B', 'D'], label: 'Replacement of foreign driving licence' },
-  'id_paper_replacement': { sections: ['A', 'B', 'D'], label: 'Replacement from ID document/paper card' },
-  'temporary_licence': { sections: ['A', 'B', 'D'], label: 'Temporary driving licence' },
-  'new_licence_card': { sections: ['A', 'C', 'D'], label: 'New licence card / Duplicate' },
-  'change_particulars': { sections: ['A', 'D'], label: 'Change of particulars (ID, name, address)' },
-  'change_licence_doc': { sections: ['A', 'C', 'D'], label: 'Change of licence document' }
+  'DRIVING_LICENCE': { sections: ['A', 'B', 'D'], label: 'Driving licence' },
+  'GOVT_DEPT_LICENCE': { sections: ['A', 'B', 'D'], label: 'Government Department licence' },
+  'FOREIGN_REPLACEMENT': { sections: ['A', 'B', 'D'], label: 'Replacement of foreign driving licence' },
+  'ID_PAPER_REPLACEMENT': { sections: ['A', 'B', 'D'], label: 'Replacement from ID document/paper card' },
+  'TEMPORARY_LICENCE': { sections: ['A', 'B', 'D'], label: 'Temporary driving licence' },
+  'NEW_LICENCE_CARD': { sections: ['A', 'C', 'D'], label: 'New licence card / Duplicate' },
+  'CHANGE_PARTICULARS': { sections: ['A', 'D'], label: 'Change of particulars (ID, name, address)' },
+  'CHANGE_LICENCE_DOC': { sections: ['A', 'C', 'D'], label: 'Change of licence document' }
 };
 
 // License categories with descriptions
