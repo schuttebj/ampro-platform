@@ -174,6 +174,8 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
 
     try {
       setError('');
+      console.log('Starting webcam preview for device:', selectedWebcamData.device_id);
+      
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           deviceId: { exact: selectedWebcamData.device_id },
@@ -182,22 +184,28 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         }
       });
 
+      console.log('Media stream obtained:', mediaStream);
       setStream(mediaStream);
       
       if (videoRef.current) {
+        console.log('Setting video srcObject');
         videoRef.current.srcObject = mediaStream;
         
-        // Wait for video to actually start playing
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              setPreviewActive(true);
-            }).catch((playError) => {
-              console.error('Error playing video:', playError);
-              setError('Failed to start video preview');
-            });
-          }
-        };
+        // Set preview active immediately since we have the stream
+        setPreviewActive(true);
+        
+        // Add multiple event listeners for debugging
+        videoRef.current.onloadstart = () => console.log('Video load started');
+        videoRef.current.onloadeddata = () => console.log('Video data loaded');
+        videoRef.current.oncanplay = () => console.log('Video can play');
+        videoRef.current.onplaying = () => console.log('Video is playing');
+        videoRef.current.onerror = (e) => console.error('Video error:', e);
+        
+        // Try to play the video
+        videoRef.current.play().catch((playError) => {
+          console.error('Error playing video:', playError);
+          // Don't set error here since autoplay might be blocked, which is ok
+        });
       }
     } catch (error: any) {
       console.error('Error starting preview:', error);
@@ -468,7 +476,9 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                                   style={{
                                     width: '100%',
                                     height: '100%',
-                                    objectFit: 'cover'
+                                    objectFit: 'cover',
+                                    backgroundColor: '#333',
+                                    border: '2px solid red'
                                   }}
                                   muted
                                   autoPlay
