@@ -186,32 +186,34 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
 
       console.log('Media stream obtained:', mediaStream);
       setStream(mediaStream);
+      setPreviewActive(true);
       
-      if (videoRef.current) {
-        console.log('Setting video srcObject');
-        videoRef.current.srcObject = mediaStream;
-        
-        // Set preview active immediately since we have the stream
-        setPreviewActive(true);
-        
-        // Add multiple event listeners for debugging
-        videoRef.current.onloadstart = () => console.log('Video load started');
-        videoRef.current.onloadeddata = () => console.log('Video data loaded');
-        videoRef.current.oncanplay = () => console.log('Video can play');
-        videoRef.current.onplaying = () => console.log('Video is playing');
-        videoRef.current.onerror = (e) => console.error('Video error:', e);
-        
-        // Try to play the video
-        videoRef.current.play().catch((playError) => {
-          console.error('Error playing video:', playError);
-          // Don't set error here since autoplay might be blocked, which is ok
-        });
-      }
     } catch (error: any) {
       console.error('Error starting preview:', error);
       setError(error.message || 'Failed to start webcam preview');
     }
   };
+
+  // Handle stream assignment when preview becomes active
+  useEffect(() => {
+    if (previewActive && stream && videoRef.current) {
+      console.log('Setting video srcObject');
+      videoRef.current.srcObject = stream;
+      
+      // Add multiple event listeners for debugging
+      videoRef.current.onloadstart = () => console.log('Video load started');
+      videoRef.current.onloadeddata = () => console.log('Video data loaded');
+      videoRef.current.oncanplay = () => console.log('Video can play');
+      videoRef.current.onplaying = () => console.log('Video is playing');
+      videoRef.current.onerror = (e) => console.error('Video error:', e);
+      
+      // Try to play the video
+      videoRef.current.play().catch((playError) => {
+        console.error('Error playing video:', playError);
+        // Don't set error here since autoplay might be blocked, which is ok
+      });
+    }
+  }, [previewActive, stream]);
 
   const stopPreview = () => {
     if (stream) {
@@ -469,24 +471,27 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                               overflow: 'hidden'
                             }}
                           >
-                            {previewActive ? (
-                              <>
-                                <video
-                                  ref={videoRef}
-                                  style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    backgroundColor: '#333',
-                                    border: '2px solid red'
-                                  }}
-                                  muted
-                                  autoPlay
-                                  playsInline
-                                />
-                                {renderPreviewOverlay()}
-                              </>
-                            ) : (
+                            {/* Always render video element, but control visibility */}
+                            <video
+                              ref={videoRef}
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                backgroundColor: '#333',
+                                border: '2px solid red',
+                                display: previewActive ? 'block' : 'none'
+                              }}
+                              muted
+                              autoPlay
+                              playsInline
+                            />
+                            
+                            {/* Show instructions when preview is not active */}
+                            {!previewActive && (
                               <Box sx={{ textAlign: 'center', color: 'white' }}>
                                 <VideocamIcon sx={{ fontSize: 60, mb: 1 }} />
                                 <Typography variant="body2">
@@ -494,6 +499,9 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                                 </Typography>
                               </Box>
                             )}
+                            
+                            {/* Show overlay when preview is active */}
+                            {previewActive && renderPreviewOverlay()}
                           </Paper>
                           
                           {/* Hidden canvas for capture */}
