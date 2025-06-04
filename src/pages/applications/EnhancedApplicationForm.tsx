@@ -187,6 +187,7 @@ const EnhancedApplicationForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -328,7 +329,7 @@ const EnhancedApplicationForm: React.FC = () => {
     if (!searchTerm || searchTerm.length < 2) return;
 
     try {
-      setLoading(true);
+      setSearchLoading(true);
       const response = await api.get('/citizens/search', {
         params: { q: searchTerm, limit: 10 }
       });
@@ -341,7 +342,7 @@ const EnhancedApplicationForm: React.FC = () => {
       console.error('Search error:', error);
       setError('Failed to search citizens');
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -454,7 +455,12 @@ const EnhancedApplicationForm: React.FC = () => {
         setSuccess('Draft created successfully');
       }
     } catch (error: any) {
-      setError('Failed to save draft: ' + (error.response?.data?.detail || error.message));
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'An unexpected error occurred';
+      setError('Failed to save draft: ' + errorMessage);
+      console.error('Save draft error:', error);
     } finally {
       setLoading(false);
     }
@@ -502,7 +508,12 @@ const EnhancedApplicationForm: React.FC = () => {
         }, 2000);
       }
     } catch (error: any) {
-      setError('Failed to submit application: ' + (error.response?.data?.detail || error.message));
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'An unexpected error occurred';
+      setError('Failed to submit application: ' + errorMessage);
+      console.error('Submit application error:', error);
     } finally {
       setLoading(false);
     }
@@ -677,7 +688,7 @@ const EnhancedApplicationForm: React.FC = () => {
           <Divider sx={{ my: 3 }} />
 
           {/* Section A - Applicant Details */}
-          {currentTab === 0 && requiredSections.includes('A') && (
+          {currentTab === 0 && tabs[0] && tabs[0].section === 'A' && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Section A: Applicant Details
@@ -705,10 +716,10 @@ const EnhancedApplicationForm: React.FC = () => {
                       <Button
                         variant="contained"
                         onClick={handleManualSearch}
-                        disabled={!citizenSearchTerm.trim() || loading}
+                        disabled={!citizenSearchTerm.trim() || searchLoading}
                         sx={{ minWidth: '100px', height: '56px' }}
                       >
-                        {loading ? <CircularProgress size={20} /> : 'Search'}
+                        {searchLoading ? <CircularProgress size={20} /> : 'Search'}
                       </Button>
                       {(showCitizenSearch || citizenSearchTerm) && (
                         <Button
@@ -991,20 +1002,21 @@ const EnhancedApplicationForm: React.FC = () => {
             </Box>
           )}
 
-          {/* Section B - Motor Vehicle Class */}
-          {currentTab === 1 && requiredSections.includes('B') && (
-            <SectionB control={control} errors={errors} watch={watch} />
-          )}
-
-          {/* Section C - Card Status */}
-          {currentTab === 2 && requiredSections.includes('C') && (
-            <SectionC control={control} errors={errors} watch={watch} />
-          )}
-
-          {/* Section D - Declaration */}
-          {currentTab === 3 && requiredSections.includes('D') && (
-            <SectionD control={control} errors={errors} />
-          )}
+          {/* Dynamically render sections based on tabs array */}
+          {tabs.map((tab, index) => {
+            if (currentTab !== index) return null;
+            
+            switch (tab.section) {
+              case 'B':
+                return <SectionB key="sectionB" control={control} errors={errors} watch={watch} />;
+              case 'C':
+                return <SectionC key="sectionC" control={control} errors={errors} watch={watch} />;
+              case 'D':
+                return <SectionD key="sectionD" control={control} errors={errors} />;
+              default:
+                return null;
+            }
+          })}
 
           {/* Summary Tab */}
           {currentTab === tabs.length && (
