@@ -277,9 +277,15 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         let photoUrl = response.data.photo_url;
         console.log('Photo URL from backend:', photoUrl);
         
-        // If the URL starts with /static/, convert it to the proper format
-        if (photoUrl.startsWith('/static/')) {
-          photoUrl = photoUrl.replace('/static/', '/');
+        // Convert to the correct public photos endpoint format
+        if (photoUrl.startsWith('/static/photos/citizens/')) {
+          // Extract filename and use public photos endpoint
+          const filename = photoUrl.split('/').pop();
+          photoUrl = `/api/v1/files/public/photos/${filename}`;
+        } else if (photoUrl.startsWith('/photos/citizens/')) {
+          // Extract filename and use public photos endpoint
+          const filename = photoUrl.split('/').pop();
+          photoUrl = `/api/v1/files/public/photos/${filename}`;
         }
         
         console.log('Formatted photo URL:', photoUrl);
@@ -324,11 +330,15 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
   };
 
   const renderPreviewOverlay = () => {
-    const displayScale = 0.3; // Reduced scale for better fit
-    const overlayWidth = mmToPx(ISO_REQUIREMENTS.width, displayScale);
-    const overlayHeight = mmToPx(ISO_REQUIREMENTS.height, displayScale);
-    const headHeight = mmToPx(ISO_REQUIREMENTS.headHeight, displayScale);
-    const eyeLevel = mmToPx(ISO_REQUIREMENTS.eyeLevel, displayScale);
+    // License photo aspect ratio: 35mm x 45mm = 7:9 ratio
+    const aspectRatio = 35 / 45; // width / height
+    const containerHeight = 400; // Preview container height
+    const overlayHeight = containerHeight * 0.8; // Use 80% of container height
+    const overlayWidth = overlayHeight * aspectRatio;
+    
+    // Calculate guideline positions based on overlay dimensions
+    const headHeightPx = (ISO_REQUIREMENTS.headHeight / ISO_REQUIREMENTS.height) * overlayHeight;
+    const eyeLevelPx = (ISO_REQUIREMENTS.eyeLevel / ISO_REQUIREMENTS.height) * overlayHeight;
 
     return (
       <Box
@@ -342,14 +352,15 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
           border: '3px solid #00ff00',
           borderRadius: 1,
           pointerEvents: 'none',
-          zIndex: 10
+          zIndex: 10,
+          backgroundColor: 'rgba(0, 255, 0, 0.05)'
         }}
       >
         {/* Head guideline (top of head) */}
         <Box
           sx={{
             position: 'absolute',
-            top: overlayHeight - eyeLevel - headHeight,
+            top: overlayHeight - eyeLevelPx - headHeightPx,
             left: 0,
             right: 0,
             height: 2,
@@ -361,7 +372,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         <Box
           sx={{
             position: 'absolute',
-            bottom: eyeLevel,
+            bottom: eyeLevelPx,
             left: 0,
             right: 0,
             height: 2,
@@ -386,16 +397,19 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
           variant="caption"
           sx={{
             position: 'absolute',
-            top: -25,
-            left: 0,
+            top: -30,
+            left: '50%',
+            transform: 'translateX(-50%)',
             color: '#00ff00',
             backgroundColor: 'rgba(0,0,0,0.8)',
             px: 1,
             borderRadius: 0.5,
-            fontSize: '11px',
-            fontWeight: 'bold'
+            fontSize: '12px',
+            fontWeight: 'bold',
+            textAlign: 'center'
           }}
         >
+          License Photo Frame<br/>
           {ISO_REQUIREMENTS.width}mm × {ISO_REQUIREMENTS.height}mm
         </Typography>
         {/* Head height indicator */}
@@ -403,32 +417,36 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
           variant="caption"
           sx={{
             position: 'absolute',
-            top: overlayHeight - eyeLevel - headHeight - 20,
-            right: -60,
+            top: overlayHeight - eyeLevelPx - headHeightPx - 25,
+            left: '50%',
+            transform: 'translateX(-50%)',
             color: '#ff9800',
             backgroundColor: 'rgba(0,0,0,0.8)',
             px: 1,
             borderRadius: 0.5,
-            fontSize: '10px'
+            fontSize: '11px',
+            textAlign: 'center'
           }}
         >
-          Head: {ISO_REQUIREMENTS.headHeight}mm
+          Top of Head
         </Typography>
         {/* Eye level indicator */}
         <Typography
           variant="caption"
           sx={{
             position: 'absolute',
-            bottom: eyeLevel - 20,
-            right: -50,
+            bottom: eyeLevelPx + 5,
+            left: '50%',
+            transform: 'translateX(-50%)',
             color: '#2196f3',
             backgroundColor: 'rgba(0,0,0,0.8)',
             px: 1,
             borderRadius: 0.5,
-            fontSize: '10px'
+            fontSize: '11px',
+            textAlign: 'center'
           }}
         >
-          Eyes: {ISO_REQUIREMENTS.eyeLevel}mm
+          Eye Level
         </Typography>
       </Box>
     );
