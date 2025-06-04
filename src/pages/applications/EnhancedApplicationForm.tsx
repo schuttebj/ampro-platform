@@ -145,7 +145,46 @@ const schema = yup.object({
   applied_category: yup.string().required('License category is required'),
   application_type: yup.string().required('Application type is required'),
   transaction_type: yup.string().required('Transaction type is required'),
-  information_true_correct: yup.boolean().oneOf([true], 'You must confirm the information is true and correct')
+  
+  // Section A
+  photograph_attached: yup.boolean().default(false),
+  photograph_count: yup.number().default(0),
+  
+  // Section B
+  previous_license_refusal: yup.boolean().default(false),
+  refusal_details: yup.string().when('previous_license_refusal', {
+    is: true,
+    then: (schema) => schema.required('Refusal details are required'),
+    otherwise: (schema) => schema.notRequired()
+  }),
+  
+  // Section C
+  card_notice_status: yup.string().notRequired(),
+  police_report_station: yup.string().notRequired(),
+  police_report_cas_number: yup.string().notRequired(),
+  office_of_issue: yup.string().notRequired(),
+  card_status_change_date: yup.string().notRequired(),
+  
+  // Section D - Legal declarations
+  not_disqualified: yup.boolean().default(false),
+  not_suspended: yup.boolean().default(false),
+  not_cancelled: yup.boolean().default(false),
+  
+  // Medical declarations
+  no_uncontrolled_epilepsy: yup.boolean().default(false),
+  no_sudden_fainting: yup.boolean().default(false),
+  no_mental_illness: yup.boolean().default(false),
+  no_muscular_incoordination: yup.boolean().default(false),
+  no_uncontrolled_diabetes: yup.boolean().default(false),
+  no_defective_vision: yup.boolean().default(false),
+  no_unsafe_disability: yup.boolean().default(false),
+  no_narcotic_addiction: yup.boolean().default(false),
+  no_alcohol_addiction: yup.boolean().default(false),
+  medically_fit: yup.boolean().default(false),
+  
+  // Declaration completion
+  information_true_correct: yup.boolean().oneOf([true], 'You must confirm the information is true and correct'),
+  applicant_signature_date: yup.string().notRequired()
 });
 
 const EnhancedApplicationForm: React.FC = () => {
