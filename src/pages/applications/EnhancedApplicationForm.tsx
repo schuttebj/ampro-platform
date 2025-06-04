@@ -26,7 +26,13 @@ import {
   Radio,
   Card,
   CardContent,
-  Chip
+  Chip,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell
 } from '@mui/material';
 import { 
   ArrowBack as ArrowBackIcon, 
@@ -172,8 +178,8 @@ const schema = yup.object().shape({
   no_alcohol_addiction: yup.boolean().default(false),
   medically_fit: yup.boolean().default(false),
   
-  // Declaration completion
-  information_true_correct: yup.boolean().default(false),
+  // Declaration completion - REQUIRED for submission
+  information_true_correct: yup.boolean().oneOf([true], 'You must confirm that the information provided is true and correct'),
   applicant_signature_date: yup.string().optional()
 });
 
@@ -507,13 +513,17 @@ const EnhancedApplicationForm: React.FC = () => {
   const isTabComplete = (section: string): boolean => {
     switch (section) {
       case 'A':
-        return !!selectedCitizen;
+        return !!selectedCitizen && !!watchedValues.citizen_id;
       case 'B':
         return !!watchedValues.applied_category;
       case 'C':
         return requiredSections.includes('C') ? !!watchedValues.card_notice_status : true;
       case 'D':
-        return watchedValues.information_true_correct || false;
+        return watchedValues.information_true_correct === true && 
+               watchedValues.medically_fit === true &&
+               watchedValues.not_disqualified === true &&
+               watchedValues.not_suspended === true &&
+               watchedValues.not_cancelled === true;
       default:
         return false;
     }
@@ -711,24 +721,55 @@ const EnhancedApplicationForm: React.FC = () => {
                         </Typography>
                         
                         {searchResults.length > 0 ? (
-                          <Box>
-                            {searchResults.map((citizen) => (
-                              <Card 
-                                key={citizen.id} 
-                                sx={{ mb: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }} 
-                                onClick={() => handleCitizenSelect(citizen)}
-                              >
-                                <CardContent sx={{ py: 1.5 }}>
-                                  <Typography variant="h6">
-                                    {citizen.first_name} {citizen.last_name}
-                                  </Typography>
-                                  <Typography color="textSecondary">
-                                    ID: {citizen.id_number} | DOB: {citizen.date_of_birth}
-                                  </Typography>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </Box>
+                          <TableContainer component={Paper} elevation={1} sx={{ maxHeight: 400 }}>
+                            <Table stickyHeader size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>ID Number</TableCell>
+                                  <TableCell>Name</TableCell>
+                                  <TableCell>Date of Birth</TableCell>
+                                  <TableCell>Gender</TableCell>
+                                  <TableCell align="center">Action</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {searchResults.map((citizen) => (
+                                  <TableRow 
+                                    key={citizen.id}
+                                    hover
+                                    sx={{ 
+                                      cursor: 'pointer',
+                                      '&:hover': { bgcolor: 'action.hover' }
+                                    }}
+                                    onClick={() => handleCitizenSelect(citizen)}
+                                  >
+                                    <TableCell>{citizen.id_number}</TableCell>
+                                    <TableCell>
+                                      <Typography variant="body2" fontWeight="medium">
+                                        {citizen.first_name} {citizen.last_name}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell>{new Date(citizen.date_of_birth).toLocaleDateString()}</TableCell>
+                                    <TableCell sx={{ textTransform: 'capitalize' }}>
+                                      {citizen.gender}
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCitizenSelect(citizen);
+                                        }}
+                                      >
+                                        Select
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
                         ) : (
                           <Alert severity="info" sx={{ mt: 1 }}>
                             No citizen found matching "{citizenSearchTerm}". 
@@ -1001,28 +1042,62 @@ const EnhancedApplicationForm: React.FC = () => {
 
         {/* Action Buttons */}
         <Box mt={4} display="flex" justifyContent="space-between">
-          <Button
-            variant="outlined"
-            onClick={() => {
-              if (selectedCitizen && isValid) {
-                const data = { ...watchedValues, citizen_id: selectedCitizen.id || 0 } as ApplicationFormData;
-                saveDraft(data);
-              }
-            }}
-            startIcon={<SaveIcon />}
-            disabled={loading || !selectedCitizen}
-          >
-            Save Draft
-          </Button>
-          
-          <Button
-            variant="contained"
-            onClick={handleSubmit(submitApplication)}
-            startIcon={<SendIcon />}
-            disabled={loading || !selectedCitizen || !isValid}
-          >
-            Submit Application
-          </Button>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                if (selectedCitizen && isValid) {
+                  const data = { ...watchedValues, citizen_id: selectedCitizen.id || 0 } as ApplicationFormData;
+                  saveDraft(data);
+                }
+              }}
+              startIcon={<SaveIcon />}
+              disabled={loading || !selectedCitizen}
+            >
+              Save Draft
+            </Button>
+            
+            {/* Previous Button */}
+            {currentTab > 0 && (
+              <Button
+                variant="outlined"
+                onClick={() => setCurrentTab(currentTab - 1)}
+                disabled={loading}
+              >
+                Previous
+              </Button>
+            )}
+          </Box>
+
+          <Box display="flex" gap={2}>
+            {/* Next Button */}
+            {currentTab < tabs.length - 1 ? (
+              <Button
+                variant="contained"
+                onClick={() => {
+                  // Validate current section before proceeding
+                  const currentSection = tabs[currentTab]?.section;
+                  if (currentSection && !isTabComplete(currentSection)) {
+                    setError(`Please complete section ${currentSection} before proceeding to the next step.`);
+                    return;
+                  }
+                  setCurrentTab(currentTab + 1);
+                }}
+                disabled={loading || !selectedCitizen}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleSubmit(submitApplication)}
+                startIcon={<SendIcon />}
+                disabled={loading || !selectedCitizen || !isValid || !watchedValues.information_true_correct}
+              >
+                Submit Application
+              </Button>
+            )}
+          </Box>
         </Box>
       </Paper>
     </Box>
