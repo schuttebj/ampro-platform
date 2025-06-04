@@ -146,9 +146,9 @@ const schema = yup.object().shape({
   application_type: yup.string().required('Application type is required'),
   transaction_type: yup.string().required('Transaction type is required'),
   
-  // Section A
-  photograph_attached: yup.boolean().default(false),
-  photograph_count: yup.number().default(0),
+  // Section A - Now required
+  photograph_attached: yup.boolean().required('Please indicate if photograph is attached'),
+  photograph_count: yup.number().min(1, 'At least one photograph is required').required('Number of photographs is required'),
   
   // Section B
   previous_license_refusal: yup.boolean().default(false),
@@ -231,8 +231,8 @@ const EnhancedApplicationForm: React.FC = () => {
       applied_category: '',
       application_type: 'new',
       transaction_type: 'driving_licence',
-      photograph_attached: false,
-      photograph_count: 0,
+      photograph_attached: true,
+      photograph_count: 3,
       previous_license_refusal: false,
       not_disqualified: false,
       not_suspended: false,
@@ -563,7 +563,11 @@ const EnhancedApplicationForm: React.FC = () => {
   const isTabComplete = (section: string): boolean => {
     switch (section) {
       case 'A':
-        return !!selectedCitizen && !!watchedValues.citizen_id;
+        return !!selectedCitizen && 
+               !!watchedValues.citizen_id && 
+               !!watchedValues.photograph_attached && 
+               !!watchedValues.photograph_count && 
+               watchedValues.photograph_count >= 3;
       case 'B':
         return !!watchedValues.applied_category;
       case 'C':
@@ -1006,38 +1010,57 @@ const EnhancedApplicationForm: React.FC = () => {
                 )}
               </Box>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="photograph_count"
-                    control={control}
-                    defaultValue={0}
-                    render={({ field }) => (
-                      <FormControl fullWidth>
-                        <InputLabel>Number of Photographs</InputLabel>
-                        <Select {...field} label="Number of Photographs">
-                          <MenuItem value={0}>None</MenuItem>
-                          <MenuItem value={3}>Three</MenuItem>
-                          <MenuItem value={4}>Four</MenuItem>
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="photograph_attached"
-                    control={control}
-                    defaultValue={false}
-                    render={({ field }) => (
-                      <FormControlLabel
-                        control={<Checkbox {...field} checked={field.value} />}
-                        label="Photograph attached with lamination strip"
+              {/* Photograph Requirements - Now prominently placed */}
+              {selectedCitizen && (
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                  <Typography variant="subtitle1" gutterBottom color="primary">
+                    📸 Photograph Requirements *
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 2 }} color="textSecondary">
+                    Please provide information about photographs attached to this application.
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Controller
+                        name="photograph_count"
+                        control={control}
+                        defaultValue={3}
+                        render={({ field }) => (
+                          <FormControl fullWidth error={!!errors.photograph_count}>
+                            <InputLabel>Number of Photographs *</InputLabel>
+                            <Select {...field} label="Number of Photographs *">
+                              <MenuItem value={3}>Three</MenuItem>
+                              <MenuItem value={4}>Four</MenuItem>
+                            </Select>
+                            {errors.photograph_count && (
+                              <FormHelperText>{errors.photograph_count.message}</FormHelperText>
+                            )}
+                          </FormControl>
+                        )}
                       />
-                    )}
-                  />
-                </Grid>
-              </Grid>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Controller
+                        name="photograph_attached"
+                        control={control}
+                        defaultValue={true}
+                        render={({ field }) => (
+                          <FormControl error={!!errors.photograph_attached}>
+                            <FormControlLabel
+                              control={<Checkbox {...field} checked={field.value} />}
+                              label="Photograph attached with lamination strip *"
+                            />
+                            {errors.photograph_attached && (
+                              <FormHelperText>{errors.photograph_attached.message}</FormHelperText>
+                            )}
+                          </FormControl>
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
             </Box>
           )}
 
