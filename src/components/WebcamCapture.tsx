@@ -272,7 +272,18 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
 
       if (response.data.success) {
         setSuccess('Photo captured successfully!');
-        onPhotoCapture(response.data.photo_url);
+        
+        // Use the photo_url from response, but ensure it's properly formatted
+        let photoUrl = response.data.photo_url;
+        console.log('Photo URL from backend:', photoUrl);
+        
+        // If the URL starts with /static/, convert it to the proper format
+        if (photoUrl.startsWith('/static/')) {
+          photoUrl = photoUrl.replace('/static/', '/');
+        }
+        
+        console.log('Formatted photo URL:', photoUrl);
+        onPhotoCapture(photoUrl);
         
         stopPreview();
         setTimeout(() => {
@@ -313,7 +324,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
   };
 
   const renderPreviewOverlay = () => {
-    const displayScale = 0.5; // Scale down for preview
+    const displayScale = 0.3; // Reduced scale for better fit
     const overlayWidth = mmToPx(ISO_REQUIREMENTS.width, displayScale);
     const overlayHeight = mmToPx(ISO_REQUIREMENTS.height, displayScale);
     const headHeight = mmToPx(ISO_REQUIREMENTS.headHeight, displayScale);
@@ -328,34 +339,46 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
           transform: 'translate(-50%, -50%)',
           width: overlayWidth,
           height: overlayHeight,
-          border: '2px solid #00ff00',
+          border: '3px solid #00ff00',
           borderRadius: 1,
           pointerEvents: 'none',
           zIndex: 10
         }}
       >
-        {/* Head guideline */}
+        {/* Head guideline (top of head) */}
         <Box
           sx={{
             position: 'absolute',
-            bottom: eyeLevel,
+            top: overlayHeight - eyeLevel - headHeight,
             left: 0,
             right: 0,
-            height: 1,
+            height: 2,
             backgroundColor: '#ff9800',
-            opacity: 0.8
+            opacity: 0.9
           }}
         />
         {/* Eye level guideline */}
         <Box
           sx={{
             position: 'absolute',
-            bottom: eyeLevel - headHeight,
+            bottom: eyeLevel,
             left: 0,
             right: 0,
-            height: 1,
+            height: 2,
             backgroundColor: '#2196f3',
-            opacity: 0.8
+            opacity: 0.9
+          }}
+        />
+        {/* Center line for face alignment */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: '50%',
+            width: 1,
+            backgroundColor: '#00ff00',
+            opacity: 0.6
           }}
         />
         {/* Dimensions text */}
@@ -363,16 +386,49 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
           variant="caption"
           sx={{
             position: 'absolute',
-            top: -20,
+            top: -25,
             left: 0,
             color: '#00ff00',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            px: 0.5,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            px: 1,
+            borderRadius: 0.5,
+            fontSize: '11px',
+            fontWeight: 'bold'
+          }}
+        >
+          {ISO_REQUIREMENTS.width}mm × {ISO_REQUIREMENTS.height}mm
+        </Typography>
+        {/* Head height indicator */}
+        <Typography
+          variant="caption"
+          sx={{
+            position: 'absolute',
+            top: overlayHeight - eyeLevel - headHeight - 20,
+            right: -60,
+            color: '#ff9800',
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            px: 1,
             borderRadius: 0.5,
             fontSize: '10px'
           }}
         >
-          {ISO_REQUIREMENTS.width}mm × {ISO_REQUIREMENTS.height}mm
+          Head: {ISO_REQUIREMENTS.headHeight}mm
+        </Typography>
+        {/* Eye level indicator */}
+        <Typography
+          variant="caption"
+          sx={{
+            position: 'absolute',
+            bottom: eyeLevel - 20,
+            right: -50,
+            color: '#2196f3',
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            px: 1,
+            borderRadius: 0.5,
+            fontSize: '10px'
+          }}
+        >
+          Eyes: {ISO_REQUIREMENTS.eyeLevel}mm
         </Typography>
       </Box>
     );
@@ -482,7 +538,6 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
                                 height: '100%',
                                 objectFit: 'cover',
                                 backgroundColor: '#333',
-                                border: '2px solid red',
                                 display: previewActive ? 'block' : 'none'
                               }}
                               muted
