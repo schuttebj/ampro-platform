@@ -625,6 +625,13 @@ const CitizenForm: React.FC = () => {
               startIcon={<SaveIcon />}
               disabled={loading || photoUploading}
               size="large"
+              onClick={() => {
+                console.log('Submit button clicked!');
+                console.log('Current form errors:', errors);
+                console.log('Form is valid:', Object.keys(errors).length === 0);
+                console.log('Loading state:', loading);
+                console.log('Photo uploading state:', photoUploading);
+              }}
             >
               {loading ? 'Saving...' : isEdit ? 'Update Citizen' : 'Create Citizen'}
             </Button>
