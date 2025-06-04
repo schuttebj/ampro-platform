@@ -170,6 +170,7 @@ const CitizenForm: React.FC = () => {
   };
 
   const onSubmit = async (data: CitizenFormData) => {
+    console.log('=== FORM SUBMISSION STARTED ===');
     console.log('Form submission started', { isEdit, id, data });
     console.log('Form errors:', errors);
     console.log('Form is valid:', Object.keys(errors).length === 0);
@@ -180,20 +181,26 @@ const CitizenForm: React.FC = () => {
 
       if (isEdit && id) {
         // Update existing citizen
+        console.log('=== UPDATING CITIZEN ===');
         console.log('Updating citizen with ID:', id);
+        console.log('Update data:', data);
         const response = await api.put(`/citizens/${id}`, data);
         console.log('Update response:', response);
       } else {
         // Create new citizen
+        console.log('=== CREATING CITIZEN ===');
         console.log('Creating new citizen');
+        console.log('Create data:', data);
         const response = await api.post('/citizens/', data);
         console.log('Create response:', response);
       }
 
-      console.log('Success - navigating to citizens list');
+      console.log('=== SUCCESS - NAVIGATING ===');
       navigate('/citizens');
     } catch (err: any) {
+      console.error('=== ERROR SAVING CITIZEN ===');
       console.error('Error saving citizen:', err);
+      console.error('Error response:', err.response);
       setError(err.response?.data?.detail || 'Failed to save citizen');
     } finally {
       setLoading(false);
@@ -625,13 +632,6 @@ const CitizenForm: React.FC = () => {
               startIcon={<SaveIcon />}
               disabled={loading || photoUploading}
               size="large"
-              onClick={() => {
-                console.log('Submit button clicked!');
-                console.log('Current form errors:', errors);
-                console.log('Form is valid:', Object.keys(errors).length === 0);
-                console.log('Loading state:', loading);
-                console.log('Photo uploading state:', photoUploading);
-              }}
             >
               {loading ? 'Saving...' : isEdit ? 'Update Citizen' : 'Create Citizen'}
             </Button>
