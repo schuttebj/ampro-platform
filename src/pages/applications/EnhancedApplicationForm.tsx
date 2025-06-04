@@ -178,8 +178,8 @@ const schema = yup.object().shape({
   no_alcohol_addiction: yup.boolean().default(false),
   medically_fit: yup.boolean().default(false),
   
-  // Declaration completion - REQUIRED for submission
-  information_true_correct: yup.boolean().oneOf([true], 'You must confirm that the information provided is true and correct'),
+  // Declaration completion
+  information_true_correct: yup.boolean().default(false),
   applicant_signature_date: yup.string().optional()
 });
 
@@ -466,7 +466,14 @@ const EnhancedApplicationForm: React.FC = () => {
       
       // Validate required sections are complete
       if (!data.information_true_correct) {
-        setError('Please complete the declaration section before submitting');
+        setError('Please check the declaration that all information provided is true and correct before submitting');
+        setCurrentTab(tabs.length - 1); // Go to declaration tab
+        return;
+      }
+
+      // Additional validation for declaration section
+      if (!data.medically_fit || !data.not_disqualified || !data.not_suspended || !data.not_cancelled) {
+        setError('Please complete all required declarations in Section D before submitting');
         setCurrentTab(tabs.length - 1); // Go to declaration tab
         return;
       }
