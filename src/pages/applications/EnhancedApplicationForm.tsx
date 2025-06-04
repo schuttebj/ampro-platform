@@ -193,6 +193,7 @@ const EnhancedApplicationForm: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [showCitizenSearch, setShowCitizenSearch] = useState(false);
   const [showNewCitizenForm, setShowNewCitizenForm] = useState(false);
+  const [searchCompleted, setSearchCompleted] = useState(false);
   const [citizenSearchTerm, setCitizenSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CitizenData[]>([]);
   const [selectedCitizen, setSelectedCitizen] = useState<CitizenData | null>(null);
@@ -330,17 +331,23 @@ const EnhancedApplicationForm: React.FC = () => {
 
     try {
       setSearchLoading(true);
+      setSearchCompleted(false);
+      setShowNewCitizenForm(false); // Hide new citizen form while searching
+      
       const response = await api.get('/citizens/search', {
         params: { q: searchTerm, limit: 10 }
       });
       setSearchResults(response.data);
+      setSearchCompleted(true);
       
+      // Only show new citizen form AFTER search completes with no results
       if (response.data.length === 0) {
         setShowNewCitizenForm(true);
       }
     } catch (error: any) {
       console.error('Search error:', error);
       setError('Failed to search citizens');
+      setSearchCompleted(true);
     } finally {
       setSearchLoading(false);
     }
@@ -360,6 +367,7 @@ const EnhancedApplicationForm: React.FC = () => {
     setSearchResults([]);
     setShowCitizenSearch(false);
     setShowNewCitizenForm(false);
+    setSearchCompleted(false);
   };
 
   const handleCitizenSelect = (citizen: CitizenData) => {
@@ -368,6 +376,9 @@ const EnhancedApplicationForm: React.FC = () => {
     setShowCitizenSearch(false);
     setSearchResults([]);
     setCitizenSearchTerm('');
+    setShowNewCitizenForm(false);
+    setSearchCompleted(false);
+    setSuccess(`Selected citizen: ${citizen.first_name} ${citizen.last_name}`);
   };
 
   const createNewCitizen = async () => {
@@ -438,6 +449,20 @@ const EnhancedApplicationForm: React.FC = () => {
   const saveDraft = async (data: ApplicationFormData) => {
     try {
       setLoading(true);
+      setError(''); // Clear any existing errors
+      
+      // Validate essential data
+      if (!data.citizen_id || data.citizen_id === 0) {
+        setError('Please select a citizen before saving draft');
+        return;
+      }
+      
+      if (!data.transaction_type || !data.application_type) {
+        setError('Please select transaction type and application type before saving draft');
+        return;
+      }
+      
+      console.log('Saving draft with data:', data);
       
       const payload = {
         ...data,
@@ -445,14 +470,20 @@ const EnhancedApplicationForm: React.FC = () => {
         status: 'applied'
       };
 
+      console.log('Draft payload:', payload);
+
       if (isEditMode) {
-        await api.put(`/applications/${id}`, payload);
+        console.log('Updating existing application:', id);
+        const response = await api.put(`/applications/${id}`, payload);
+        console.log('Update response:', response.data);
         setSuccess('Draft saved successfully');
       } else {
+        console.log('Creating new draft application');
         const response = await api.post('/applications/', payload);
+        console.log('Create response:', response.data);
         setApplicationData(response.data);
-        navigate(`/applications/edit/${response.data.id}`);
         setSuccess('Draft created successfully');
+        // Don't redirect immediately, let user continue editing
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 
@@ -461,6 +492,7 @@ const EnhancedApplicationForm: React.FC = () => {
                           'An unexpected error occurred';
       setError('Failed to save draft: ' + errorMessage);
       console.error('Save draft error:', error);
+      console.error('Error response:', error.response?.data);
     } finally {
       setLoading(false);
     }
@@ -788,7 +820,7 @@ const EnhancedApplicationForm: React.FC = () => {
                               </TableBody>
                             </Table>
                           </TableContainer>
-                        ) : (
+                        ) : searchCompleted ? (
                           <Alert severity="info" sx={{ mt: 1 }}>
                             No citizen found matching "{citizenSearchTerm}". 
                             <Button 
@@ -800,7 +832,14 @@ const EnhancedApplicationForm: React.FC = () => {
                               Create New Citizen
                             </Button>
                           </Alert>
-                        )}
+                        ) : searchLoading ? (
+                          <Box display="flex" justifyContent="center" alignItems="center" p={2}>
+                            <CircularProgress size={24} />
+                            <Typography variant="body2" sx={{ ml: 1 }}>
+                              Searching...
+                            </Typography>
+                          </Box>
+                        ) : null}
                       </Box>
                     )}
 

@@ -14,7 +14,8 @@ import {
   RadioGroup,
   Radio,
   FormLabel,
-  FormHelperText
+  FormHelperText,
+  Divider
 } from '@mui/material';
 
 interface ApplicationFormData {
@@ -462,23 +463,55 @@ export const SectionD: React.FC<SectionProps> = ({ control, errors }) => {
           </Box>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="applicant_signature_date"
-            control={control}
-            defaultValue=""
-            render={({ field }) => (
-              <TextField
-                {...field}
-                fullWidth
-                type="date"
-                label="Signature Date"
-                InputLabelProps={{
-                  shrink: true,
+        {/* Signature Section */}
+        <Grid item xs={12}>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle1" gutterBottom>
+            Applicant Signature
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={8}>
+              <Box 
+                sx={{ 
+                  border: '2px dashed #ccc',
+                  borderRadius: 1,
+                  p: 3,
+                  minHeight: 120,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'grey.50',
+                  position: 'relative'
                 }}
+              >
+                <Typography variant="body2" color="textSecondary" align="center">
+                  Signature Pad Placeholder
+                  <br />
+                  <small>(Digital signature pad will be implemented here)</small>
+                </Typography>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} md={4}>
+              <Controller
+                name="applicant_signature_date"
+                control={control}
+                defaultValue=""
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Signature Date"
+                    type="date"
+                    value={field.value || new Date().toISOString().split('T')[0]}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Date of signing this declaration"
+                  />
+                )}
               />
-            )}
-          />
+            </Grid>
+          </Grid>
         </Grid>
       </Grid>
     </Box>
