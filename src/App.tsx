@@ -114,10 +114,12 @@ const App: React.FC = () => {
                   {/* Application routes */}
                   <Route path="/applications" element={<ApplicationList />} />
                   <Route path="/applications/:id" element={<ApplicationDetails />} />
-                  <Route path="/applications/:id/edit" element={<ApplicationForm />} />
-                  <Route path="/applications/new" element={<ApplicationForm />} />
+                  <Route path="/applications/:id/edit" element={<EnhancedApplicationForm />} />
+                  <Route path="/applications/new" element={<EnhancedApplicationForm />} />
                   <Route path="/applications/enhanced/new" element={<EnhancedApplicationForm />} />
                   <Route path="/applications/edit/:id" element={<EnhancedApplicationForm />} />
+                  <Route path="/applications/legacy/:id/edit" element={<ApplicationForm />} />
+                  <Route path="/applications/legacy/new" element={<ApplicationForm />} />
                   <Route path="/applications/:applicationId/payment" element={<PaymentInterface />} />
                   <Route path="/applications/:id/view" element={<ApplicationDetails />} />
                   

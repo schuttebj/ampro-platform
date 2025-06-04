@@ -186,7 +186,7 @@ const ApplicationList: React.FC = () => {
         <Button 
           variant="contained" 
           startIcon={<AddIcon />}
-          onClick={() => navigate('/applications/new')}
+          onClick={() => navigate('/applications/enhanced/new')}
         >
           New Application
         </Button>

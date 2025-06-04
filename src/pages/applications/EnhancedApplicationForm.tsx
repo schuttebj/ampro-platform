@@ -210,10 +210,57 @@ const EnhancedApplicationForm: React.FC = () => {
     formState: { errors, isValid }
   } = useForm<ApplicationFormData>({
     resolver: yupResolver(schema),
-    mode: 'onBlur'
+    mode: 'onBlur',
+    defaultValues: {
+      citizen_id: 0,
+      applied_category: '',
+      application_type: 'new',
+      transaction_type: 'driving_licence',
+      photograph_attached: false,
+      photograph_count: 0,
+      previous_license_refusal: false,
+      not_disqualified: false,
+      not_suspended: false,
+      not_cancelled: false,
+      no_uncontrolled_epilepsy: false,
+      no_sudden_fainting: false,
+      no_mental_illness: false,
+      no_muscular_incoordination: false,
+      no_uncontrolled_diabetes: false,
+      no_defective_vision: false,
+      no_unsafe_disability: false,
+      no_narcotic_addiction: false,
+      no_alcohol_addiction: false,
+      medically_fit: false,
+      information_true_correct: false
+    }
   });
 
   const watchedValues = watch();
+
+  // Check for citizen parameter in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const citizenId = urlParams.get('citizen');
+    
+    if (citizenId && !isEditMode) {
+      // Pre-load citizen data
+      loadCitizenById(citizenId);
+    }
+  }, []);
+
+  // Helper function to load citizen by ID
+  const loadCitizenById = async (citizenId: string) => {
+    try {
+      const response = await api.get(`/citizens/${citizenId}`);
+      const citizen = response.data;
+      setSelectedCitizen(citizen);
+      setValue('citizen_id', citizen.id || 0);
+    } catch (error: any) {
+      console.error('Failed to load citizen:', error);
+      setError('Failed to load citizen data. Please search and select manually.');
+    }
+  };
 
   // Update required sections when transaction type changes
   useEffect(() => {

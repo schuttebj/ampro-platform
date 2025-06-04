@@ -301,7 +301,7 @@ const CitizenDetails: React.FC = () => {
             <Button 
               variant="contained" 
               color="secondary" 
-              onClick={() => navigate(`/applications/new?citizen=${id}`)}
+              onClick={() => navigate(`/applications/enhanced/new?citizen=${id}`)}
               sx={{ mr: 2 }}
             >
               Start New Application
