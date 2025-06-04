@@ -80,14 +80,14 @@ const FeeManagement: React.FC = () => {
   ];
 
   const transactionTypes = [
-    { value: 'driving_licence', label: 'Driving licence' },
-    { value: 'govt_dept_licence', label: 'Government Department licence' },
-    { value: 'foreign_replacement', label: 'Replacement of foreign licence' },
-    { value: 'id_paper_replacement', label: 'Replacement from ID/paper card' },
-    { value: 'temporary_licence', label: 'Temporary driving licence' },
-    { value: 'new_licence_card', label: 'New licence card / Duplicate' },
-    { value: 'change_particulars', label: 'Change of particulars' },
-    { value: 'change_licence_doc', label: 'Change of licence document' }
+    { value: 'DRIVING_LICENCE', label: 'Driving Licence' },
+    { value: 'GOVT_DEPT_LICENCE', label: 'Government Department Licence' },
+    { value: 'FOREIGN_REPLACEMENT', label: 'Foreign Licence Replacement' },
+    { value: 'ID_PAPER_REPLACEMENT', label: 'ID Paper Replacement' },
+    { value: 'TEMPORARY_LICENCE', label: 'Temporary Licence' },
+    { value: 'NEW_LICENCE_CARD', label: 'New Licence Card' },
+    { value: 'CHANGE_PARTICULARS', label: 'Change of Particulars' },
+    { value: 'CHANGE_LICENCE_DOC', label: 'Change of Licence Document' }
   ];
 
   const applicationTypes = [

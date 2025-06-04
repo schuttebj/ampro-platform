@@ -469,7 +469,7 @@ export interface ISOValidationResult {
 export interface Transaction {
   id: number;
   transaction_ref: string;
-  transaction_type: 'license_issuance' | 'license_renewal' | 'license_replacement' | 'application_submission' | 'application_approval' | 'application_rejection' | 'fee_payment' | 'document_upload';
+  transaction_type: 'DRIVING_LICENCE' | 'GOVT_DEPT_LICENCE' | 'FOREIGN_REPLACEMENT' | 'ID_PAPER_REPLACEMENT' | 'TEMPORARY_LICENCE' | 'NEW_LICENCE_CARD' | 'CHANGE_PARTICULARS' | 'CHANGE_LICENCE_DOC';
   amount?: number;
   currency?: string;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';

@@ -28,9 +28,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Stepper,
-  Step,
-  StepLabel,
   Card,
   CardContent,
   Chip
@@ -43,7 +40,8 @@ import {
   Person as PersonIcon,
   Assignment as AssignmentIcon,
   Description as DescriptionIcon,
-  Gavel as GavelIcon
+  Gavel as GavelIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import api from '../../api/api';
 import { SectionB, SectionC, SectionD } from './ApplicationSections';
@@ -522,23 +520,21 @@ const EnhancedApplicationForm: React.FC = () => {
 
       <Paper sx={{ p: 3 }}>
         {/* Progress Stepper */}
-        <Stepper activeStep={currentTab} sx={{ mb: 4 }}>
-          {tabs.map((tab, index) => (
-            <Step key={tab.section} completed={isTabComplete(tab.section)}>
-              <StepLabel>{tab.label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        {/* Tabs */}
-        <Tabs value={currentTab} onChange={handleTabChange} sx={{ mb: 3 }}>
+        <Tabs value={currentTab} onChange={handleTabChange} sx={{ mb: 4 }}>
           {tabs.map((tab, index) => (
             <Tab 
               key={tab.section}
-              icon={tab.icon} 
+              icon={
+                isTabComplete(tab.section) ? (
+                  <CheckCircleIcon color="success" />
+                ) : (
+                  tab.icon
+                )
+              }
               label={tab.label}
               sx={{ 
-                color: isTabComplete(tab.section) ? 'success.main' : 'inherit'
+                color: isTabComplete(tab.section) ? 'success.main' : 'inherit',
+                fontWeight: isTabComplete(tab.section) ? 'bold' : 'normal'
               }}
             />
           ))}

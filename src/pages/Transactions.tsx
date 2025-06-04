@@ -134,14 +134,14 @@ const Transactions: React.FC = () => {
       minWidth: 150,
       format: (value: string) => {
         const typeColors: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'default'> = {
-          license_issuance: 'primary',
-          license_renewal: 'secondary',
-          license_replacement: 'warning',
-          application_submission: 'default',
-          application_approval: 'success',
-          application_rejection: 'error',
-          fee_payment: 'warning',
-          document_upload: 'default'
+          DRIVING_LICENCE: 'primary',
+          GOVT_DEPT_LICENCE: 'secondary',
+          FOREIGN_REPLACEMENT: 'warning',
+          ID_PAPER_REPLACEMENT: 'warning',
+          TEMPORARY_LICENCE: 'default',
+          NEW_LICENCE_CARD: 'primary',
+          CHANGE_PARTICULARS: 'default',
+          CHANGE_LICENCE_DOC: 'secondary'
         };
         const displayName = value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         return (
@@ -209,14 +209,14 @@ const Transactions: React.FC = () => {
       label: 'Transaction Type',
       type: 'select',
       options: [
-        { value: 'license_issuance', label: 'License Issuance' },
-        { value: 'license_renewal', label: 'License Renewal' },
-        { value: 'license_replacement', label: 'License Replacement' },
-        { value: 'application_submission', label: 'Application Submission' },
-        { value: 'application_approval', label: 'Application Approval' },
-        { value: 'application_rejection', label: 'Application Rejection' },
-        { value: 'fee_payment', label: 'Fee Payment' },
-        { value: 'document_upload', label: 'Document Upload' }
+        { value: 'DRIVING_LICENCE', label: 'Driving Licence' },
+        { value: 'GOVT_DEPT_LICENCE', label: 'Government Department Licence' },
+        { value: 'FOREIGN_REPLACEMENT', label: 'Foreign Licence Replacement' },
+        { value: 'ID_PAPER_REPLACEMENT', label: 'ID Paper Replacement' },
+        { value: 'TEMPORARY_LICENCE', label: 'Temporary Licence' },
+        { value: 'NEW_LICENCE_CARD', label: 'New Licence Card' },
+        { value: 'CHANGE_PARTICULARS', label: 'Change of Particulars' },
+        { value: 'CHANGE_LICENCE_DOC', label: 'Change of Licence Document' }
       ]
     },
     {
