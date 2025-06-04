@@ -54,20 +54,23 @@ const schema = yup.object({
   id_number: yup.string().required('ID number is required'),
   first_name: yup.string().required('First name is required'),
   last_name: yup.string().required('Last name is required'),
-  middle_name: yup.string(),
+  middle_name: yup.string().nullable().optional(),
   date_of_birth: yup.string().required('Date of birth is required'),
   gender: yup.string().required('Gender is required'),
-  marital_status: yup.string(),
-  phone_number: yup.string(),
-  email: yup.string().email('Must be a valid email'),
-  address_line1: yup.string(),
-  address_line2: yup.string(),
-  city: yup.string(),
-  state_province: yup.string(),
-  postal_code: yup.string(),
-  country: yup.string(),
-  birth_place: yup.string(),
-  nationality: yup.string(),
+  marital_status: yup.string().nullable().optional(),
+  phone_number: yup.string().nullable().optional(),
+  email: yup.string().nullable().optional().test('email', 'Must be a valid email', (value) => {
+    if (!value) return true; // Allow empty/null values
+    return yup.string().email().isValidSync(value);
+  }),
+  address_line1: yup.string().nullable().optional(),
+  address_line2: yup.string().nullable().optional(),
+  city: yup.string().nullable().optional(),
+  state_province: yup.string().nullable().optional(),
+  postal_code: yup.string().nullable().optional(),
+  country: yup.string().nullable().optional(),
+  birth_place: yup.string().nullable().optional(),
+  nationality: yup.string().nullable().optional(),
   is_active: yup.boolean().default(true)
 }).required();
 
@@ -257,39 +260,16 @@ const CitizenForm: React.FC = () => {
       )}
 
       <Paper sx={{ p: 4 }}>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
-          {/* Test button to verify form data */}
-          <Box sx={{ mb: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-            <Typography variant="h6" color="info.contrastText" gutterBottom>
-              Debug Information
+        <form onSubmit={handleSubmit((data) => {
+          console.log('=== FORM ONSUBMIT TRIGGERED ===');
+          console.log('handleSubmit wrapper called with data:', data);
+          return onSubmit(data);
+        })} noValidate>
+          {/* Debug info - simplified */}
+          <Box sx={{ mb: 1, p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
+            <Typography variant="body2" color="success.contrastText">
+              ✅ Form validation fixed - submit button should work now
             </Typography>
-            <Button
-              variant="outlined"
-              onClick={() => {
-                console.log('=== DEBUG BUTTON CLICKED ===');
-                console.log('Form values:', watch());
-                console.log('Form errors:', errors);
-                console.log('Is form valid:', Object.keys(errors).length === 0);
-                console.log('isEdit:', isEdit, 'id:', id);
-                console.log('Loading:', loading, 'photoUploading:', photoUploading);
-              }}
-              sx={{ mr: 2, mb: 1 }}
-            >
-              Debug Form State
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={async (e) => {
-                e.preventDefault();
-                console.log('=== MANUAL SUBMIT TEST ===');
-                const formData = watch();
-                console.log('Manual submission with data:', formData);
-                await onSubmit(formData);
-              }}
-              sx={{ mb: 1 }}
-            >
-              Manual Submit Test
-            </Button>
           </Box>
           
           {/* Personal Information Section */}
