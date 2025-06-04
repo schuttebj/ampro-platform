@@ -55,19 +55,65 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       setLoading(true);
       setError('');
       
-      // Import the API service and detect actual physical webcams
+      // Import the API service
       const { hardwareApi } = await import('../api/api');
       
+      // First, try to detect actual physical webcams using browser WebRTC
       try {
-        // First, try to detect actual physical webcams connected to the system
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(device => device.kind === 'videoinput');
+          
+          if (videoDevices.length > 0) {
+            // Convert browser-detected webcams to our Hardware format
+            const detectedWebcams: Hardware[] = videoDevices.map((device, index) => ({
+              id: 9000 + index, // Use high numeric IDs to avoid conflicts with database IDs
+              name: device.label || `Webcam ${index + 1}`,
+              code: device.deviceId || `BROWSER_${index}`,
+              hardware_type: 'WEBCAM' as const,
+              model: 'Browser Detected',
+              manufacturer: 'Local Device',
+              serial_number: '',
+              device_id: device.deviceId,
+              status: 'ACTIVE' as const,
+              location_id: undefined,
+              usage_count: 0,
+              error_count: 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              is_active: true,
+              capabilities: {
+                max_resolution: "1920x1080",
+                formats: ["jpeg", "png"],
+                fps: 30
+              }
+            }));
+            
+            setWebcams(detectedWebcams);
+            
+            // Auto-select first detected webcam
+            if (detectedWebcams.length > 0) {
+              setSelectedWebcam(detectedWebcams[0].id);
+            }
+            
+            console.info(`Detected ${detectedWebcams.length} local webcam(s) using browser API`);
+            return; // Successfully loaded browser-detected webcams
+          }
+        }
+      } catch (browserError) {
+        console.warn('Browser webcam detection failed:', browserError);
+      }
+      
+      // Second fallback: Try server-side detection (for configured hardware)
+      try {
         const detectionResponse = await hardwareApi.webcam.detect();
         
         if (detectionResponse.success && detectionResponse.webcams && detectionResponse.webcams.length > 0) {
-          // Convert detected webcams to our Hardware format using numeric IDs
+          // Convert server-detected webcams to our Hardware format using numeric IDs
           const detectedWebcams: Hardware[] = detectionResponse.webcams.map((webcam: any, index: number) => ({
-            id: 9000 + index, // Use high numeric IDs to avoid conflicts with database IDs
-            name: webcam.name || `Detected Webcam ${index + 1}`,
-            code: webcam.device_id || `DETECTED_${index}`,
+            id: 8000 + index, // Use different range for server-detected
+            name: webcam.name || `Server Webcam ${index + 1}`,
+            code: webcam.device_id || `SERVER_${index}`,
             hardware_type: 'WEBCAM' as const,
             model: webcam.capabilities?.max_resolution || 'Unknown',
             manufacturer: webcam.manufacturer || 'Unknown',
@@ -90,13 +136,14 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
             setSelectedWebcam(detectedWebcams[0].id);
           }
           
-          return; // Successfully loaded detected webcams
+          console.info(`Detected ${detectedWebcams.length} server webcam(s)`);
+          return; // Successfully loaded server-detected webcams
         }
       } catch (detectionError) {
-        console.warn('Physical webcam detection failed, falling back to database webcams:', detectionError);
+        console.warn('Server webcam detection failed, falling back to database webcams:', detectionError);
       }
       
-      // Fallback: Get configured webcam hardware devices from database
+      // Third fallback: Get configured webcam hardware devices from database
       const allHardware = await hardwareApi.getAll({
         hardware_type: 'WEBCAM',
         status: 'ACTIVE'
@@ -111,7 +158,9 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       
       // Show info message about using configured webcams vs detected ones
       if (allHardware.length > 0) {
-        console.info('Using configured webcam devices from database. To use physical webcam detection, ensure webcams are connected and drivers are installed.');
+        console.info(`Using ${allHardware.length} configured webcam device(s) from database. For local webcam detection, please allow camera permissions in your browser.`);
+      } else {
+        console.warn('No webcams detected. Please ensure webcams are connected and camera permissions are granted.');
       }
       
     } catch (err: any) {
@@ -133,9 +182,6 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
       setError('');
       setSuccess('');
 
-      // Import the API service and capture photo
-      const { hardwareApi } = await import('../api/api');
-
       // Find the selected webcam to get its details
       const selectedWebcamData = webcams.find((w: Hardware) => w.id === selectedWebcam);
       if (!selectedWebcamData) {
@@ -143,45 +189,149 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({
         return;
       }
 
-      // For detected webcams, we need to handle them differently
-      let captureParams;
+      // Handle different types of webcams
       if (selectedWebcam >= 9000) {
-        // This is a detected webcam - use device_id for capture
-        captureParams = {
-          hardware_id: selectedWebcamData.device_id || '0', // Use device_id from detected webcam
-          citizen_id: citizenId,
-          quality: 'high' as const,
-          format: 'jpeg' as const
-        };
+        // This is a browser-detected webcam - use browser APIs
+        await handleBrowserWebcamCapture(selectedWebcamData);
+      } else if (selectedWebcam >= 8000) {
+        // This is a server-detected webcam - use server APIs
+        await handleServerWebcamCapture(selectedWebcamData);
       } else {
         // This is a configured hardware webcam from database
-        captureParams = {
-          hardware_id: selectedWebcam,
-          citizen_id: citizenId,
-          quality: 'high' as const,
-          format: 'jpeg' as const
-        };
+        await handleDatabaseWebcamCapture(selectedWebcam);
       }
 
-      const response = await hardwareApi.webcam.capture(captureParams);
-
-      if (response.success && response.photo_url) {
-        setSuccess('Photo captured successfully!');
-        onPhotoCapture(response.photo_url);
-        
-        // Close dialog after a short delay
-        setTimeout(() => {
-          setOpen(false);
-          setSuccess('');
-        }, 1500);
-      } else {
-        setError(response.error_message || 'Photo capture failed');
-      }
     } catch (err: any) {
       console.error('Error capturing photo:', err);
       setError(err.response?.data?.detail || err.message || 'Failed to capture photo');
     } finally {
       setCapturing(false);
+    }
+  };
+
+  const handleBrowserWebcamCapture = async (webcamData: Hardware) => {
+    try {
+      // Use browser APIs to capture photo
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: webcamData.device_id ? { exact: webcamData.device_id } : undefined,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+
+      // Create video element and canvas for capture
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+
+      video.srcObject = stream;
+      video.play();
+
+      // Wait for video to load
+      await new Promise((resolve) => {
+        video.onloadedmetadata = resolve;
+      });
+
+      // Set canvas size to video size
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Capture frame
+      context?.drawImage(video, 0, 0);
+
+      // Stop video stream
+      stream.getTracks().forEach(track => track.stop());
+
+      // Convert to blob
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/jpeg', 0.9);
+      });
+
+      if (!blob) {
+        throw new Error('Failed to capture photo');
+      }
+
+      // Upload to server (you'll need to implement this endpoint)
+      const formData = new FormData();
+      formData.append('photo', blob, 'webcam_capture.jpg');
+      formData.append('citizen_id', citizenId.toString());
+      formData.append('hardware_id', webcamData.code);
+
+      const { default: api } = await import('../api/api');
+      const response = await api.post('/citizens/upload-photo', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        setSuccess('Photo captured successfully!');
+        onPhotoCapture(response.data.photo_url);
+        
+        setTimeout(() => {
+          setOpen(false);
+          setSuccess('');
+        }, 1500);
+      } else {
+        setError('Failed to upload captured photo');
+      }
+
+    } catch (error: any) {
+      console.error('Browser webcam capture error:', error);
+      setError(error.message || 'Failed to capture photo using browser webcam');
+    }
+  };
+
+  const handleServerWebcamCapture = async (webcamData: Hardware) => {
+    // Server-side capture (existing logic)
+    const { hardwareApi } = await import('../api/api');
+
+    const captureParams = {
+      hardware_id: webcamData.device_id || '0',
+      citizen_id: citizenId,
+      quality: 'high' as const,
+      format: 'jpeg' as const
+    };
+
+    const response = await hardwareApi.webcam.capture(captureParams);
+
+    if (response.success && response.photo_url) {
+      setSuccess('Photo captured successfully!');
+      onPhotoCapture(response.photo_url);
+      
+      setTimeout(() => {
+        setOpen(false);
+        setSuccess('');
+      }, 1500);
+    } else {
+      setError(response.error_message || 'Photo capture failed');
+    }
+  };
+
+  const handleDatabaseWebcamCapture = async (hardwareId: number) => {
+    // Database hardware capture (existing logic)
+    const { hardwareApi } = await import('../api/api');
+
+    const captureParams = {
+      hardware_id: hardwareId,
+      citizen_id: citizenId,
+      quality: 'high' as const,
+      format: 'jpeg' as const
+    };
+
+    const response = await hardwareApi.webcam.capture(captureParams);
+
+    if (response.success && response.photo_url) {
+      setSuccess('Photo captured successfully!');
+      onPhotoCapture(response.photo_url);
+      
+      setTimeout(() => {
+        setOpen(false);
+        setSuccess('');
+      }, 1500);
+    } else {
+      setError(response.error_message || 'Photo capture failed');
     }
   };
 
